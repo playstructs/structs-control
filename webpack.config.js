@@ -25,6 +25,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  *   STRUCTS_DEV_GALLERY      "1" to mount /dev/components and /dev/tests routes
  *   CHOKIDAR_USEPOLLING      "true" for file watching inside Docker (macOS bind mounts)
  *
+ * Docker (STRUCTS_CONTROL_MODE=dev|prod): see Dockerfile + docker/entrypoint.sh
+ *
  * Runtime config preferred: public/config.js sets window.STRUCTS_CONFIG and is
  * served alongside the bundle so operators can redeploy the same static build
  * against any guild host.
@@ -41,6 +43,9 @@ export default (_env, argv) => {
   return {
     entry: {
       index: "./src/js/index.js",
+    },
+    watchOptions: {
+      poll: process.env.CHOKIDAR_USEPOLLING === "true" ? 1000 : undefined,
     },
     output: {
       filename: isProd ? "js/[name].[contenthash:8].js" : "js/[name].js",
@@ -159,9 +164,6 @@ export default (_env, argv) => {
       historyApiFallback: true,
       port: 8081,
       hot: true,
-      watchOptions: {
-        poll: process.env.CHOKIDAR_USEPOLLING === "true" ? 1000 : undefined,
-      },
       client: { overlay: { errors: true, warnings: false } },
       proxy: !isProd
         ? [

@@ -109,8 +109,7 @@ npm run lint                                                  # eslint + prettie
 npm run typecheck                                             # tsc on JSDoc
 
 # Docker (see docker-structs-guild for compose wiring):
-docker build --target dev -t structs-control:dev .            # webpack HMR on :8081
-docker build --target prod -t structs-control:prod .          # nginx static on :80
+docker build -t structs/structs-control:latest .
 
 # In the running app:
 #   /dev/components       -- visual gallery (requires STRUCTS_DEV_GALLERY=1)
@@ -121,20 +120,35 @@ For runtime config without rebuilds, edit `public/config.js` and reload.
 
 ## Docker
 
-Multi-target [`Dockerfile`](Dockerfile): `dev` (webpack-dev-server) and `prod` (nginx serving `dist/`).
+Single [`Dockerfile`](Dockerfile) published as `structs/structs-control`. Runtime mode is selected with **`STRUCTS_CONTROL_MODE`**:
 
-| Target | Command | Port |
-| --- | --- | --- |
-| `dev` | `docker build --target dev -t structs-control:dev .` | 8081 |
-| `prod` | `docker build --target prod -t structs-control:prod .` | 80 |
+| Mode | Env | Listens | Use case |
+| --- | --- | --- | --- |
+| `prod` (default) | `STRUCTS_CONTROL_MODE=prod` | `:80` | Static nginx serving baked `dist/` |
+| `dev` | `STRUCTS_CONTROL_MODE=dev` | `:8081` | webpack-dev-server + HMR (bind-mount source) |
+
+```bash
+docker build -t structs/structs-control:latest .
+
+# Prod (default)
+docker run -p 8080:80 structs/structs-control:latest
+
+# Dev with live source
+docker run -p 8081:8081 -v "$(pwd):/app" -v /app/node_modules \
+  -e STRUCTS_CONTROL_MODE=dev \
+  -e STRUCTS_DEV_PROXY_TARGET=http://host.docker.internal:8080 \
+  -e CHOKIDAR_USEPOLLING=true \
+  structs/structs-control:latest
+```
 
 **Dev with bind mount** (wired in [docker-structs-guild](https://github.com/playstructs/docker-structs-guild)):
 
+- `STRUCTS_CONTROL_MODE=dev`
 - Mount repo root → `/app`, plus anonymous volume on `/app/node_modules`
 - `STRUCTS_DEV_PROXY_TARGET=http://structs-webapp:80` — forwards `/api` to the Symfony Guild API
 - `CHOKIDAR_USEPOLLING=true` — file watching on Docker Desktop (macOS)
 
-**Prod** — no `/api` proxy; set `guildApiUrl` in `public/config.js` (copied to `dist/` at build time).
+**Prod** — map host port to container `:80`; set `guildApiUrl` in `public/config.js` (copied to `dist/` at build time).
 
 ## Design system (Figma)
 

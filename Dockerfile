@@ -1,9 +1,13 @@
-# structs-control — multi-target image for dev (webpack HMR) and prod (nginx static).
+# structs-control — single image; STRUCTS_CONTROL_MODE=dev|prod selects runtime.
 
-# Shared base: dependencies + source (runs standalone without a bind mount).
-FROM node:22-bookworm AS base
+FROM node:22-bookworm
 
 LABEL maintainer="Slow Ninja <info@slow.ninja>"
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends nginx && \
+    rm -f /etc/nginx/sites-enabled/default && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -12,26 +16,17 @@ RUN npm ci
 
 COPY . .
 
-# Dev: webpack-dev-server with live reload. Bind-mount the repo at /app in compose.
-FROM base AS dev
-
-EXPOSE 8081
-
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
-
-# Prod: build static assets, serve via nginx.
-FROM base AS builder
-
 ARG STRUCTS_GUILD_API_URL=""
 ENV STRUCTS_GUILD_API_URL=${STRUCTS_GUILD_API_URL}
 
 RUN npm run build
 
-FROM nginx:1.27-alpine AS prod
-
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY docker/entrypoint.sh /usr/local/bin/structs-control-entrypoint
+RUN chmod +x /usr/local/bin/structs-control-entrypoint
 
-EXPOSE 80
+ENV STRUCTS_CONTROL_MODE=prod
 
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 80 8081
+
+ENTRYPOINT ["structs-control-entrypoint"]
