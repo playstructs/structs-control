@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <path
+    d="M12 2.5 20.5 7.5v9L12 21.5 3.5 16.5v-9L12 2.5Z"
+    fill="#6B4FD8"
+    stroke="#5A3FC7"
+    stroke-width="0.5"
+  />
+  <path
+    d="M12 6.5 17 9.5v6L12 18.5 7 15.5v-6L12 6.5Z"
+    fill="#8B72E8"
+  />
+</svg>

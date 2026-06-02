@@ -1,0 +1,59 @@
+{
+  "name": "structs-control",
+  "version": "0.1.0",
+  "description": "Structs Guild Admin SPA -- vanilla JS + Webpack + Bootstrap. Headless client for the Symfony Guild API.",
+  "private": true,
+  "type": "module",
+  "main": "src/js/index.js",
+  "scripts": {
+    "dev": "webpack serve --mode=development",
+    "build": "webpack --mode=production",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.{js,ts}\" \"scripts/**/*.mjs\" && prettier --check \"src/**/*.{js,ts,scss}\"",
+    "lint:fix": "eslint --fix \"src/**/*.{js,ts}\" \"scripts/**/*.mjs\" && prettier --write \"src/**/*.{js,ts,scss}\"",
+    "new:page": "node scripts/new-page.mjs",
+    "new:listener": "node scripts/new-listener.mjs",
+    "new:manager": "node scripts/new-manager.mjs",
+    "new:endpoint": "node scripts/new-endpoint.mjs"
+  },
+  "browserslist": [
+    "last 2 Chrome versions",
+    "last 2 Firefox versions",
+    "last 2 Safari versions",
+    "last 2 Edge versions"
+  ],
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.12.0",
+    "@cosmjs/amino": "^0.32.3",
+    "@cosmjs/crypto": "^0.32.3",
+    "@cosmjs/encoding": "^0.32.3",
+    "@cosmjs/proto-signing": "^0.32.3",
+    "@cosmjs/stargate": "^0.32.3",
+    "@cosmjs/tendermint-rpc": "^0.32.3",
+    "@nats-io/nats-core": "^3.0.0",
+    "bip39": "^3.1.0",
+    "bootstrap": "^5.3.3",
+    "bootstrap-icons": "^1.11.3",
+    "crypto-js": "^4.2.0",
+    "js-sha256": "^0.11.0",
+    "sha.js": "^2.4.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "copy-webpack-plugin": "^12.0.2",
+    "css-loader": "^6.10.0",
+    "eslint": "^8.57.0",
+    "html-webpack-plugin": "^5.6.0",
+    "mini-css-extract-plugin": "^2.8.0",
+    "node-polyfill-webpack-plugin": "^3.0.0",
+    "prettier": "^3.2.5",
+    "sass": "^1.71.0",
+    "sass-loader": "^14.1.0",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.90.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.0.0"
+  }
+}

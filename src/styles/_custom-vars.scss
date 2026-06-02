@@ -1,0 +1,54 @@
+// Non-Bootstrap design tokens exposed as CSS custom properties.
+// Use these in `.sg-*` rules; never inline hex values in components.
+
+:root {
+  --sg-surface: #ffffff;
+  --sg-surface-muted: #f6f7f9;
+  --sg-surface-active: #eaeefb;
+  --sg-surface-hover: #f0f3fb;
+  --sg-surface-subtle: #f9fafb;
+
+  --sg-text-primary: #1a1c21;
+  --sg-text-title: #1f212a;
+  --sg-text-body: #3a4050;
+  --sg-text-secondary: #7a849f;
+  --sg-text-tertiary: #a0a6b5;
+  --sg-text-active: #3a4050;
+  --sg-text-on-primary: #f6f7f9;
+
+  --sg-border: #d9dbe3;
+  --sg-border-default: #b5baca;
+  --sg-border-strong: #58617a;
+  --sg-divider: #eceef3;
+
+  --sg-text-disabled: #b5baca;
+
+  --sg-btn-metal: #7a849f;
+  --sg-btn-success: #32862b;
+
+  --sg-shell-header-h: 65px;
+  --sg-shell-sidebar-collapsed-w: 72px;
+  --sg-shell-sidebar-expanded-w: 256px;
+  --sg-shell-pillnav-h: 48px;
+  --sg-shell-gutter: 24px;
+
+  --sg-radius-xs: 4px;
+  --sg-radius-sm: 6px;
+  --sg-radius-md: 8px;
+  --sg-radius-lg: 12px;
+  --sg-radius-pill: 999px;
+
+  --sg-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --sg-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --sg-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+
+  --sg-z-sidebar: 100;
+  --sg-z-header: 110;
+  --sg-z-banner: 120;
+  --sg-z-toast: 1080;
+  --sg-z-modal: 1055;
+  --sg-z-boot: 9999;
+
+  --sg-transition-fast: 120ms ease;
+  --sg-transition-base: 180ms ease;
+}

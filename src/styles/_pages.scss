@@ -1,0 +1,102 @@
+// Page-level utility classes. Pages should compose Bootstrap utilities + these.
+
+.sg-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.sg-stat-card {
+  background: var(--sg-surface);
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-md);
+  padding: 16px 20px;
+}
+
+.sg-stat-card__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--sg-text-secondary);
+  margin-bottom: 6px;
+}
+
+.sg-stat-card__value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--sg-text-title);
+  line-height: 1.2;
+}
+
+.sg-stat-card__sub {
+  font-size: 0.8125rem;
+  color: var(--sg-text-tertiary);
+  margin-top: 4px;
+}
+
+.sg-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.sg-card {
+  background: var(--sg-surface);
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-md);
+  padding: 20px;
+}
+
+.sg-card__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--sg-text-title);
+  margin-bottom: 12px;
+}
+
+.sg-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--sg-text-secondary);
+  border: 1px dashed var(--sg-border);
+  border-radius: var(--sg-radius-md);
+  background: var(--sg-surface);
+}
+
+.sg-empty__title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--sg-text-primary);
+}
+
+.sg-empty__hint {
+  font-size: 0.875rem;
+}
+
+.sg-error {
+  padding: 24px;
+  border: 1px solid var(--bs-danger);
+  border-radius: var(--sg-radius-md);
+  background: rgba(239, 68, 68, 0.05);
+  color: var(--bs-danger);
+}
+
+.sg-loading {
+  padding: 32px;
+  text-align: center;
+  color: var(--sg-text-tertiary);
+}
+
+.sg-floating-label {
+  position: relative;
+}
+
+.sg-toast-stack {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: var(--sg-z-toast);
+}

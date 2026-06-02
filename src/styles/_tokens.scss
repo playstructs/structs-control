@@ -1,0 +1,48 @@
+// Bootstrap variable overrides for the Structs design system.
+// Imported BEFORE bootstrap/scss so it can override defaults.
+
+$primary: #254dbc;
+$success: #22c55e;
+$danger: #ef4444;
+$warning: #eab308;
+$info: #0ea5e9;
+
+$body-bg: #f6f7f9;
+$body-color: #1a1c21;
+$body-secondary-color: #7a849f;
+$body-tertiary-color: #a0a6b5;
+
+$border-color: #d9dbe3;
+$border-color-translucent: rgba(0, 0, 0, 0.075);
+$border-radius: 0.5rem;
+$border-radius-sm: 0.25rem; // 4px — Figma radius/xs
+$border-radius-lg: 0.75rem;
+
+$card-bg: #ffffff;
+$card-border-color: $border-color;
+$card-border-radius: $border-radius;
+$card-cap-bg: $card-bg;
+
+$font-family-sans-serif:
+  "Inter",
+  system-ui,
+  -apple-system,
+  "Segoe UI",
+  Roboto,
+  "Helvetica Neue",
+  Arial,
+  sans-serif;
+$font-size-base: 0.9375rem; // 15px
+$line-height-base: 1.5;
+$headings-font-weight: 600;
+
+$input-border-color: $border-color;
+$input-focus-border-color: tint-color($primary, 25%);
+
+$nav-link-color: #7a849f;
+$nav-link-hover-color: $body-color;
+
+// Modal tightening to match the admin density Figma uses
+$modal-content-border-radius: $border-radius-lg;
+$modal-content-box-shadow-xs: 0 10px 30px rgba(0, 0, 0, 0.08);
+$modal-content-box-shadow-sm-up: 0 10px 30px rgba(0, 0, 0, 0.08);

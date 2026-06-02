@@ -1,0 +1,15 @@
+// Sass entry. Tokens override Bootstrap defaults; custom-vars are CSS custom
+// properties consumed by .sg-* rules.
+//
+// @use rules don't compose well with Bootstrap's @import-based architecture,
+// so this file uses @import throughout. Once Bootstrap fully supports
+// @forward/@use this can be migrated.
+
+@import "tokens";
+@import "bootstrap/scss/bootstrap";
+@import "bootstrap-icons/font/bootstrap-icons.css";
+@import "custom-vars";
+@import "shell";
+@import "components";
+@import "tables";
+@import "pages";

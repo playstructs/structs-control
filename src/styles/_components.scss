@@ -1,0 +1,131 @@
+// Bootstrap component overrides aligned with the Factions Admin Design System.
+
+.btn {
+  --bs-btn-font-size: 0.8125rem;
+  --bs-btn-font-weight: 600;
+  --bs-btn-padding-x: 0.75rem;
+  --bs-btn-padding-y: 0.5rem;
+  --bs-btn-border-radius: var(--sg-radius-xs);
+  line-height: 1.5;
+}
+
+.btn-sm {
+  --bs-btn-padding-x: 0.625rem;
+  --bs-btn-padding-y: 0.375rem;
+  --bs-btn-font-size: 0.8125rem;
+}
+
+.btn-primary {
+  --bs-btn-color: var(--sg-text-on-primary);
+  --bs-btn-bg: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+}
+
+.btn-light,
+.btn-outline-secondary {
+  --bs-btn-color: var(--sg-text-body);
+  --bs-btn-border-color: var(--sg-border);
+  --bs-btn-bg: var(--sg-surface);
+}
+
+.form-control,
+.form-select {
+  font-size: 0.8125rem;
+  border-color: var(--sg-border);
+  border-radius: var(--sg-radius-xs);
+  color: var(--sg-text-title);
+
+  &::placeholder {
+    color: var(--sg-text-secondary);
+  }
+
+  &:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.15rem rgba(37, 77, 188, 0.12);
+  }
+}
+
+.form-control-sm {
+  min-height: 33px;
+  padding: 0.375rem 0.75rem;
+}
+
+.form-label {
+  font-size: 0.8125rem;
+  color: var(--sg-text-secondary);
+  margin-bottom: 0.375rem;
+}
+
+.form-text {
+  font-size: 0.8125rem;
+  color: var(--sg-text-secondary);
+}
+
+.form-floating > .form-control {
+  font-size: 1rem;
+}
+
+.card {
+  border-color: var(--sg-border);
+  border-radius: var(--sg-radius-md);
+  box-shadow: var(--sg-shadow-sm);
+}
+
+.sg-row-link {
+  cursor: pointer;
+}
+
+// Status dot + label (Tables frame in Figma)
+.sg-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--sg-text-body);
+}
+
+.sg-status__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: 0 0 6px;
+  background: var(--sg-text-tertiary);
+
+  &.is-online {
+    background: #32862b;
+  }
+
+  &.is-pending {
+    background: #eab308;
+  }
+
+  &.is-offline {
+    background: #ef4444;
+  }
+}
+
+// Metric pill (reactors / substations summary chips)
+.sg-metric-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--sg-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--sg-surface-muted);
+  color: var(--sg-text-body);
+  border: 1px solid var(--sg-border);
+
+  &.is-success {
+    background: #e6f4ea;
+    border-color: #b7dfc0;
+    color: #1e5a28;
+  }
+
+  &.is-danger {
+    background: #fce8e6;
+    border-color: #f5c4bf;
+    color: #8b1a10;
+  }
+}

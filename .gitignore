@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Webpack output
+public/js/
+dist/
+
+# Reference repositories (read-only, not part of the project)
+references/
+
+# Environment + local config
+.env
+.env.local
+.env.*.local
+public/config.local.js
+
+# OS / editor noise
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

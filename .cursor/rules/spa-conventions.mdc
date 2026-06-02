@@ -1,0 +1,80 @@
+---
+description: structs-control SPA conventions
+globs:
+  - "src/**/*.js"
+  - "src/**/*.ts"
+  - "src/**/*.scss"
+  - "tests/**/*.js"
+  - "scripts/**/*.mjs"
+alwaysApply: true
+---
+
+# structs-control SPA conventions
+
+This is a **vanilla JavaScript** admin SPA (no React, no Vite) built with **Webpack 5 + Bootstrap 5 + SCSS + @cosmjs**. Light TypeScript only for protobuf code; everywhere else, JSDoc + `checkJs` provides typing. See `agents.md` for the orientation guide and `docs/ARCHITECTURE.md` for the full architecture.
+
+## API + auth
+
+- Guild API base path is always `/api`. The Vite-style dev proxy in `webpack.config.js` forwards `/api/*` to the configured guild host. Never call a guild endpoint without the `/api` prefix.
+- All responses use the envelope `{ success, errors[], data }`. `framework/JsonAjaxer` validates this and returns `data` -- managers and controllers never see the envelope.
+- Authentication is **cookie-based**. Every fetch sends `credentials: "include"` (JsonAjaxer does this). **Never** JWT / bearer / API key.
+- Login flow signs `LOGIN_GUILD{guildId}ADDRESS{address}DATETIME{ts}` exactly as `references/structs-webapp/src/js/api/GuildAPI.js#buildLoginMessage`. Do not invent new message shapes.
+- The mnemonic lives in **sessionStorage** via `store.session` -- never `localStorage`. ESLint enforces this.
+
+## State + data
+
+- The **Store** in `src/js/store/` is the single source of truth for API data. View models subscribe; they never cache responses in their own fields.
+- Reads go through Managers -> `store.query(keys.x(id), () => guildAPI.getX(id))`. **Never call `guildAPI.x` directly from a view model.**
+- Mutations go through `store.tx.enqueue(msg, { invalidate, optimisticPatch })`. **Never call `signingClient.signAndBroadcast` directly.**
+- GRASS messages enter via `InvalidationBridge` and mark cache keys stale; subscribed view models refresh automatically.
+
+## UI primitives
+
+- Bootstrap 5 + Bootstrap Icons. No Tailwind, MUI, Chakra, or other UI kits.
+- A la carte JS imports only (`bootstrap/js/dist/modal.js`, `dropdown.js`, `collapse.js`, `tooltip.js`).
+- Token overrides in `src/styles/_tokens.scss`; non-Bootstrap design tokens as `--sg-*` CSS custom properties in `_custom-vars.scss`.
+- Sidebar is fixed at exactly five items: **Guild, Bank, Energy Market, Dashboards, Settings** with icons `XDiamond`, `PiggyBank`, `BarChartLine`, `GraphUp`, `ToggleOff`. Do not add, remove, or reorder without an explicit design change request.
+
+## Naming
+
+- The Figma design system says "Faction". In code, **always say "Guild"**. Never expose "faction" in component names, types, props, routes, or copy.
+
+## Forms
+
+- Every form uses `util/validate.js` (`required`, `maxLength`, `isMnemonic`, etc.) + `notify.formError(formId, errors)` to surface `.is-invalid` / `.invalid-feedback`.
+- No bare `<input>` + ad-hoc string checks.
+
+## Graceful degradation
+
+- Endpoints that may 404 on some Guild deployments must call `ajax.registerOptional(...)`. A 404 then becomes `Resource{status:"missing"}` and view models render an empty state via `ResourceView`.
+- Log every gap in `docs/guild-api-requirements.md`. Do not throw, do not crash, do not leave the user staring at a spinner.
+
+## Imports
+
+- Use the `@/` alias for `src/js/*`. No deep relative imports (`../../../foo`).
+- Never import from `references/` -- it is read-only documentation. Copy what you need into `src/` and adapt it.
+- Bootstrap subpaths must include the `.js` extension because `package.json` is `"type": "module"`.
+
+## Transactions
+
+- All chain-state mutations go through the queue in `src/js/store/TxQueue.js`. The header pending-tx badge and `/alerts` Activity page both read from `store.tx`.
+- `confirmStrategy` polls `getTx` with backoff; this is a known weak spot to be replaced when a stable push surface exists.
+
+## Routing
+
+- Routes table is `src/js/constants/Routes.js`. Sidebar items in `src/js/constants/Sidebar.js`. Adding a page = one edit per file (or run `npm run new:page`).
+- The router is URL-driven: `history.pushState` + `popstate`. No localStorage routing state.
+
+## Hosting
+
+- Production target is a static CDN. `public/config.js` exposes `window.STRUCTS_CONFIG` so a single build can be redeployed against any guild host without rebuilding. CORS requirements documented in `docs/guild-api-requirements.md`.
+
+## Testing
+
+- Critical paths (Store/QueryClient, Session, TxQueue) have tests in `tests/`. They run in the browser via `/dev/tests` (gated behind `STRUCTS_DEV_GALLERY=1`). Add tests for new Store/Tx logic.
+
+## When the conventions and the Figma file disagree
+
+- Figma wins on visual design (colors, spacing, copy).
+- This document wins on code structure, file layout, and naming.
+- "Faction" in Figma is "Guild" in code, always.

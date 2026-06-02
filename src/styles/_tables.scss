@@ -1,0 +1,414 @@
+// Tables — Figma Tables frame (571:21113)
+
+.sg-datatable {
+  background: var(--sg-surface);
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-md);
+  overflow: hidden;
+}
+
+.sg-datatable--embedded {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.sg-datatable--embedded .sg-datatable__scroll {
+  border-top: 1px solid var(--sg-divider);
+}
+
+// Subheader — TableSubheader (571:18284): px 30 py 16
+.sg-datatable__subheader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px 24px;
+  padding: 16px 30px;
+}
+
+.sg-datatable__subheader-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 20px;
+  min-width: 0;
+  flex: 1 1 320px;
+}
+
+.sg-datatable__filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.sg-datatable__subheader-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 24px;
+  flex: 1 1 360px;
+}
+
+.sg-datatable__filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--sg-border-default);
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-surface);
+  color: var(--sg-text-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+
+  i {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  &:hover {
+    background: var(--sg-surface-hover);
+  }
+}
+
+.sg-datatable__clear-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-surface);
+  color: var(--sg-text-disabled);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.sg-datatable__clear-btn:not(:disabled) {
+  color: var(--sg-text-body);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--sg-surface-hover);
+  }
+}
+
+.sg-datatable__clear-btn:disabled {
+  cursor: default;
+}
+
+.sg-datatable__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.sg-datatable__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--sg-radius-pill);
+  background: var(--sg-border);
+  border: 1px solid var(--sg-border);
+  color: var(--sg-text-title);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.sg-datatable__tag-remove {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sg-text-body);
+  line-height: 1;
+}
+
+.sg-datatable__toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+// Figma toolbar button variants
+.sg-btn-lunar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--sg-border-default);
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-surface);
+  color: var(--sg-text-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--sg-surface-hover);
+    color: var(--sg-text-body);
+  }
+}
+
+.sg-btn-success-fill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-btn-success);
+  color: var(--sg-text-on-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    filter: brightness(0.95);
+    color: var(--sg-text-on-primary);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+}
+
+.sg-datatable__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sg-datatable__scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 8px;
+  border: 1px solid var(--sg-border-default);
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-surface);
+  color: var(--sg-text-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  i {
+    font-size: 1rem;
+    color: var(--sg-text-body);
+  }
+}
+
+.sg-datatable__search-input {
+  width: 160px;
+  min-height: 36px;
+  border-color: var(--sg-border);
+}
+
+// Figma search submit — Button/Metalic Grey (#7a849f), text only
+.sg-datatable__search-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-btn-metal);
+  color: var(--sg-text-on-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+
+  &:hover {
+    filter: brightness(0.94);
+  }
+}
+
+.sg-datatable__scroll {
+  overflow-x: auto;
+}
+
+.sg-datatable__table {
+  width: 100%;
+  margin: 0;
+}
+
+.sg-datatable__table > :not(caption) > * > * {
+  padding: 12px 24px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--sg-border);
+}
+
+.sg-datatable__table > thead > tr > th {
+  height: 44px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--sg-text-body);
+  background: var(--sg-surface);
+  border-bottom: 1px solid var(--sg-border);
+  white-space: nowrap;
+}
+
+.sg-datatable__table > tbody > tr {
+  height: 64px;
+}
+
+.sg-datatable__table > tbody > tr:hover > * {
+  background: var(--sg-surface-hover);
+}
+
+.sg-datatable__table > tbody > tr.sg-row-link {
+  cursor: pointer;
+}
+
+.sg-datatable__table > tbody > tr.is-selected > * {
+  background: var(--sg-surface-active);
+}
+
+.sg-datatable__check-col {
+  width: 52px;
+  padding-left: 20px !important;
+  padding-right: 12px !important;
+}
+
+.sg-datatable__check-col .form-check-input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border-radius: var(--sg-radius-xs);
+  border-color: var(--sg-border);
+}
+
+.sg-datatable th.is-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sg-datatable th.is-sorted {
+  border-bottom-color: var(--sg-border-strong);
+  color: var(--sg-text-title);
+}
+
+.sg-datatable__sort-icon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.75rem;
+  opacity: 0.45;
+  vertical-align: middle;
+}
+
+.sg-datatable th.is-sorted .sg-datatable__sort-icon {
+  opacity: 1;
+}
+
+.sg-datatable__cell-label {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--sg-text-body);
+}
+
+.sg-datatable__cell-mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 0.8125rem;
+  color: var(--sg-text-body);
+}
+
+.sg-datatable__empty-row td {
+  height: auto;
+  padding: 32px 24px !important;
+  text-align: center;
+  color: var(--sg-text-secondary);
+  font-size: 0.8125rem;
+  border-bottom: 0;
+}
+
+// Footer — Figma Footer (571:18263): px 16 py 20
+.sg-datatable__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 20px 16px;
+}
+
+.sg-datatable__results {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: var(--sg-radius-md);
+  background: var(--sg-surface);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--sg-text-secondary);
+}
+
+.sg-datatable__results-dash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--sg-text-secondary);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.sg-datatable__pagination {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.sg-datatable__page-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--sg-text-secondary);
+  white-space: nowrap;
+}
+
+.sg-datatable__page-btn {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--sg-radius-md);
+  background: transparent;
+  color: var(--sg-text-body);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.sg-datatable__page-btn:hover:not(:disabled) {
+  background: var(--sg-surface-hover);
+}
+
+.sg-datatable__page-btn:disabled {
+  color: var(--sg-text-disabled);
+  cursor: default;
+}

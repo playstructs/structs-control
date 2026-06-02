@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>Structs Control</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <!--
+      Runtime config. Edit per-deploy without rebuilding.
+      Falls back to build-time STRUCTS_GUILD_API_URL if absent.
+    -->
+    <script src="/config.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div id="boot-screen" class="sg-boot-screen" aria-hidden="false">
+      <div class="sg-boot-screen__inner">
+        <div class="sg-boot-screen__logo">
+          <img src="" alt="" />
+          <span>STRUCTS</span>
+        </div>
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="banner-layer" class="sg-banner-layer"></div>
+    <div id="notification-layer" class="sg-notification-layer"></div>
+    <div id="toast-layer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+  </body>
+</html>
