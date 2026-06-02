@@ -5,6 +5,9 @@ import { ResourceView } from "../view_models/components/ResourceView.js";
 import { tableShell } from "../view_models/components/TableShell.js";
 import { keys } from "../store/keys.js";
 import { statusBadge } from "../util/statusDisplay.js";
+import { formatUnitOrDash } from "../util/unitDisplay.js";
+import { buildEntityLookup } from "../util/entityLookup.js";
+import { renderEntityRef } from "../util/entityLink.js";
 
 /**
  * Energy market agreements and providers visible to this guild.
@@ -44,6 +47,7 @@ class GuildRelationshipsViewModel extends AbstractViewModel {
   render() {
     const providers = this.store.read(keys.providerList());
     const agreements = this.store.read(keys.agreementList(this.guildId));
+    const lookup = buildEntityLookup(this.store);
 
     return `
       ${LayoutViewModel.pageHeader({ title: "Energy agreements", subtitle: "Providers and agreements in the energy market." })}
@@ -52,7 +56,7 @@ class GuildRelationshipsViewModel extends AbstractViewModel {
           <div class="sg-card">
             <div class="sg-card__title">Providers</div>
             ${ResourceView.render(providers, {
-              success: (rows) => renderProviderTable(rows),
+              success: (rows) => renderProviderTable(rows, lookup),
             })}
           </div>
         </div>
@@ -60,7 +64,7 @@ class GuildRelationshipsViewModel extends AbstractViewModel {
           <div class="sg-card">
             <div class="sg-card__title">Agreements</div>
             ${ResourceView.render(agreements, {
-              success: (rows) => renderAgreementTable(rows),
+              success: (rows) => renderAgreementTable(rows, lookup),
             })}
           </div>
         </div>
@@ -69,8 +73,8 @@ class GuildRelationshipsViewModel extends AbstractViewModel {
   }
 }
 
-/** @param {unknown} rows */
-function renderProviderTable(rows) {
+/** @param {unknown} rows @param {import("../util/entityLookup.js").EntityLookup} lookup */
+function renderProviderTable(rows, lookup) {
   const list = /** @type {import("../types/api.js").ProviderData[]} */ (Array.isArray(rows) ? rows : []);
   if (!list.length) return `<div class="sg-empty"><div class="sg-empty__hint">No providers.</div></div>`;
   return tableShell({
@@ -79,17 +83,17 @@ function renderProviderTable(rows) {
       .map(
         (p) =>
           `<tr>
-            <td class="sg-datatable__cell-mono">${escapeHtml(p.id ?? "—")}</td>
-            <td class="sg-datatable__cell-mono">${escapeHtml(p.owner_id ?? "—")}</td>
-            <td class="text-end">${escapeHtml(p.capacity ?? "—")}</td>
+            <td>${renderEntityRef(p.id, lookup)}</td>
+            <td>${renderEntityRef(p.owner_id, lookup)}</td>
+            <td class="text-end">${escapeHtml(formatUnitOrDash(p.capacity, "milliwatt"))}</td>
           </tr>`,
       )
       .join("")}</tbody>`,
   });
 }
 
-/** @param {unknown} rows */
-function renderAgreementTable(rows) {
+/** @param {unknown} rows @param {import("../util/entityLookup.js").EntityLookup} lookup */
+function renderAgreementTable(rows, lookup) {
   const list = /** @type {import("../types/api.js").AgreementData[]} */ (Array.isArray(rows) ? rows : []);
   if (!list.length) return `<div class="sg-empty"><div class="sg-empty__hint">No agreements for this guild.</div></div>`;
   return tableShell({
@@ -98,9 +102,9 @@ function renderAgreementTable(rows) {
       .map(
         (a) =>
           `<tr>
-            <td class="sg-datatable__cell-mono">${escapeHtml(a.id ?? "—")}</td>
-            <td class="sg-datatable__cell-mono">${escapeHtml(a.provider_id ?? "—")}</td>
-            <td class="text-end">${escapeHtml(a.capacity ?? "—")}</td>
+            <td>${renderEntityRef(a.id, lookup)}</td>
+            <td>${renderEntityRef(a.provider_id, lookup)}</td>
+            <td class="text-end">${escapeHtml(formatUnitOrDash(a.capacity, "milliwatt"))}</td>
             <td>${statusBadge(a.active ? "Online" : "Offline")}</td>
           </tr>`,
       )

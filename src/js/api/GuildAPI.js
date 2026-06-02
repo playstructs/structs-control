@@ -22,6 +22,7 @@ export class GuildAPI {
       "/reactor/guild/",
       "/reactor/all/page/",
       "/allocation/all/page/",
+      "/allocation/destination/",
       "/substation/all/page/",
       "/guild/this",
       "/infusion/list/destination/",
@@ -30,6 +31,7 @@ export class GuildAPI {
       "/provider/",
       "/agreement/",
       "/stat/",
+      "/grid/",
     ];
     for (const p of optional) this.ajax.registerOptional(p);
   }
@@ -158,6 +160,13 @@ export class GuildAPI {
     );
   }
 
+  /** @param {string} destinationId */
+  async getAllocationsByDestination(destinationId) {
+    return /** @type {import("../types/api.js").AllocationData[]} */ (
+      await fetchCatalogList(this.ajax, `/allocation/destination/${encodeURIComponent(destinationId)}/page/`)
+    );
+  }
+
   // -- Infusion ---------------------------------------------------------------
 
   /** @param {string} playerId */
@@ -256,6 +265,14 @@ export class GuildAPI {
       agreements.push(...(await this.getAgreementsByProvider(String(pid))));
     }
     return agreements;
+  }
+
+  // -- Grid -------------------------------------------------------------------
+
+  async getGridAll() {
+    return /** @type {import("../types/api.js").GridRow[]} */ (
+      await fetchCatalogList(this.ajax, `/grid/all/page/`)
+    );
   }
 
   // -- Stats ------------------------------------------------------------------

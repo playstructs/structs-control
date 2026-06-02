@@ -50,6 +50,7 @@ import { MembershipApplicationManager } from "./managers/MembershipApplicationMa
 import { ProviderManager } from "./managers/ProviderManager.js";
 import { AgreementManager } from "./managers/AgreementManager.js";
 import { StatManager } from "./managers/StatManager.js";
+import { GridManager } from "./managers/GridManager.js";
 
 import { MenuPageRouter } from "./framework/MenuPageRouter.js";
 import { GrassManager } from "./framework/GrassManager.js";
@@ -61,6 +62,7 @@ import { PlayerListener } from "./grass_listeners/PlayerListener.js";
 import { GuildListener } from "./grass_listeners/GuildListener.js";
 import { SubstationListener } from "./grass_listeners/SubstationListener.js";
 import { TxListener } from "./grass_listeners/TxListener.js";
+import { GridListener } from "./grass_listeners/GridListener.js";
 
 // -- Configure ----------------------------------------------------------------
 
@@ -111,6 +113,7 @@ const membershipApplicationManager = new MembershipApplicationManager({ store, g
 const providerManager = new ProviderManager({ store, guildAPI });
 const agreementManager = new AgreementManager({ store, guildAPI });
 const statManager = new StatManager({ store, guildAPI });
+const gridManager = new GridManager({ store, guildAPI });
 
 // -- Router -------------------------------------------------------------------
 
@@ -165,16 +168,28 @@ function mountLayout() {
     import("./controllers/BankController.js").then((m) => new m.BankController({ store, layout: newLayout, bankManager })),
   );
   router.registerLazyController("Substations", () =>
-    import("./controllers/SubstationsController.js").then((m) => new m.SubstationsController({ store, layout: newLayout, router, substationManager })),
+    import("./controllers/SubstationsController.js").then((m) => new m.SubstationsController({ store, layout: newLayout, router, substationManager, gridManager })),
   );
   router.registerLazyController("SubstationDetail", () =>
-    import("./controllers/SubstationDetailController.js").then((m) => new m.SubstationDetailController({ store, layout: newLayout, router, substationManager, allocationManager })),
+    import("./controllers/SubstationDetailController.js").then(
+      (m) =>
+        new m.SubstationDetailController({
+          store,
+          layout: newLayout,
+          router,
+          substationManager,
+          allocationManager,
+          gridManager,
+        }),
+    ),
   );
-  router.registerLazyController("EnergyGrid", () =>
-    import("./controllers/EnergyGridController.js").then((m) => new m.EnergyGridController({ store, layout: newLayout, router, allocationManager })),
+  router.registerLazyController("Allocations", () =>
+    import("./controllers/AllocationsController.js").then(
+      (m) => new m.AllocationsController({ store, layout: newLayout, router, allocationManager, gridManager }),
+    ),
   );
   router.registerLazyController("Reactors", () =>
-    import("./controllers/ReactorsController.js").then((m) => new m.ReactorsController({ store, layout: newLayout, router, reactorManager })),
+    import("./controllers/ReactorsController.js").then((m) => new m.ReactorsController({ store, layout: newLayout, router, reactorManager, gridManager })),
   );
   router.registerLazyController("ReactorProfile", () =>
     import("./controllers/ReactorProfileController.js").then(
@@ -214,6 +229,7 @@ function startGrass() {
   grass.registerListener(new PlayerListener(store));
   grass.registerListener(new GuildListener(store));
   grass.registerListener(new SubstationListener(store));
+  grass.registerListener(new GridListener(gridManager));
   grass.registerListener(new TxListener());
   void grass.init();
 }
@@ -261,6 +277,7 @@ async function boot(options = {}) {
   // Prefetch the home resource that drives the sidebar + GRASS URL.
   try {
     await guildManager.fetchThisGuild();
+    void gridManager.fetchIndex();
     startGrass();
   } catch (e) {
     notify.banner(

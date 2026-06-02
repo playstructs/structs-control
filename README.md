@@ -1,6 +1,6 @@
 # structs-control
 
-The headless admin SPA for Structs guild operators. It's a vanilla JavaScript project bundled with Webpack 5, styled with Bootstrap 5 and SCSS, and wired to a per-guild Symfony API for reads and @cosmjs for on-chain writes. Operators log in with a Cosmos mnemonic, the SPA hits the Guild API over cookie-based auth, signs Stargate transactions for mutations, and listens to NATS/GRASS for real-time cache invalidation. There is no React, no Vite, and no Tailwind.
+The headless admin SPA for Structs guild operators. It's a vanilla JavaScript project bundled with Webpack 5, styled with Bootstrap 5 and SCSS, and wired to a per-guild Symfony API for reads and @cosmjs for on-chain writes. Operators log in with a Cosmos mnemonic, the SPA hits the Guild API over cookie-based auth, signs Stargate transactions for mutations, and listens to NATS/GRASS for real-time cache invalidation. 
 
 ## Structs
 In the distant future the species of the galaxy are embroiled in a race for Alpha Matter, the rare and dangerous substance that fuels galactic civilization. Players take command of Structs, a race of sentient machines, and must forge alliances, conquer enemies and expand their influence to control Alpha Matter and the fate of the galaxy.
@@ -45,6 +45,7 @@ Point the webpack dev proxy at a guild host:
 - [`docs/EVENTS.md`](./docs/EVENTS.md) — event catalog
 - [`docs/guild-api-requirements.md`](./docs/guild-api-requirements.md) — API gaps and CORS requirements
 - [Structs](https://playstructs.com)
+- [Structs Agentic Documentation](https://structs.ai)
 - [Project Wiki](https://watt.wiki)
 - [@PlayStructs Twitter](https://twitter.com/playstructs)
 

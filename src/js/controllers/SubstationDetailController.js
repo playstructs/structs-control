@@ -2,17 +2,21 @@ import { AbstractController } from "../framework/AbstractController.js";
 import { AbstractViewModel } from "../framework/AbstractViewModel.js";
 import { LayoutViewModel } from "../view_models/LayoutViewModel.js";
 import { ResourceView } from "../view_models/components/ResourceView.js";
+import { DataTable } from "../view_models/components/DataTable.js";
 import { statCard } from "../view_models/components/StatCard.js";
-import { tableShell } from "../view_models/components/TableShell.js";
 import { notify } from "../store/notify.js";
+import { success } from "../store/Resource.js";
 import { readFormValues, validateForm, required, pattern } from "../util/validate.js";
 import { keys } from "../store/keys.js";
 import {
-  allocationControllerId,
   allocationDestinationId,
   allocationId,
-  allocationTypeLabel,
+  allocationSourceId,
+  formatAllocationPower,
 } from "../util/allocationDisplay.js";
+import { formatGridAttribute } from "../util/unitDisplay.js";
+import { buildEntityLookup } from "../util/entityLookup.js";
+import { renderEntityLink, renderEntityRef } from "../util/entityLink.js";
 
 export class SubstationDetailController extends AbstractController {
   constructor(deps) {
@@ -21,6 +25,7 @@ export class SubstationDetailController extends AbstractController {
     this.router = deps.router;
     this.substationManager = deps.substationManager;
     this.allocationManager = deps.allocationManager;
+    this.gridManager = deps.gridManager;
   }
 
   activate(_page, params) {
@@ -38,9 +43,47 @@ export class SubstationDetailController extends AbstractController {
         router: this.router,
         id,
         allocationManager: this.allocationManager,
+        gridManager: this.gridManager,
       }),
     );
   }
+}
+
+/**
+ * Merge connected players with outbound allocations (keyed by destination).
+ * @param {import("../types/api.js").PlayerData[]} players
+ * @param {import("../types/api.js").AllocationData[]} allocations
+ */
+function buildPlayerLookupRows(players, allocations) {
+  /** @type {Map<string, import("../types/api.js").AllocationData>} */
+  const byDestination = new Map();
+  for (const row of allocations) {
+    const dest = allocationDestinationId(row);
+    if (dest && dest !== "—") byDestination.set(dest, row);
+  }
+
+  /** @type {Set<string>} */
+  const seen = new Set();
+  /** @type {Array<{ playerId: string, name?: string, allocation: import("../types/api.js").AllocationData | null }>} */
+  const merged = [];
+
+  for (const p of players) {
+    if (!p?.id) continue;
+    seen.add(p.id);
+    merged.push({
+      playerId: p.id,
+      name: p.name,
+      allocation: byDestination.get(p.id) ?? null,
+    });
+  }
+
+  for (const row of allocations) {
+    const dest = allocationDestinationId(row);
+    if (!dest || dest === "—" || seen.has(dest)) continue;
+    merged.push({ playerId: dest, allocation: row });
+  }
+
+  return merged;
 }
 
 class SubstationDetailViewModel extends AbstractViewModel {
@@ -50,6 +93,7 @@ class SubstationDetailViewModel extends AbstractViewModel {
     this.router = deps.router;
     this.id = deps.id;
     this.allocationManager = deps.allocationManager;
+    this.gridManager = deps.gridManager;
   }
 
   mount(container) {
@@ -57,73 +101,106 @@ class SubstationDetailViewModel extends AbstractViewModel {
     this.subscribe(this.store, keys.substation(this.id));
     this.subscribe(this.store, keys.substationPlayers(this.id));
     this.subscribe(this.store, keys.allocationBySource(this.id));
+    this.subscribe(this.store, keys.gridIndex());
+  }
+
+  /** @returns {import("../util/gridIndex.js").GridIndex | null} */
+  _gridIndex() {
+    const res = this.store.read(keys.gridIndex());
+    return res.status === "success" && res.data && typeof res.data === "object"
+      ? /** @type {import("../util/gridIndex.js").GridIndex} */ (res.data)
+      : null;
   }
 
   render() {
     const sub = this.store.read(keys.substation(this.id));
     const players = this.store.read(keys.substationPlayers(this.id));
     const allocs = this.store.read(keys.allocationBySource(this.id));
+    const gridIndex = this._gridIndex();
     const defaultController = this.store.session?.data?.playerId ?? "";
+    const playerRows = players.status === "success" && Array.isArray(players.data) ? players.data : [];
+    const allocRows = allocs.status === "success" && Array.isArray(allocs.data) ? allocs.data : [];
+    const subData = sub.status === "success" ? sub.data : null;
+    const lookup = buildEntityLookup(this.store, {
+      players: playerRows,
+      substations: subData ? [/** @type {import("../types/api.js").SubstationData} */ (subData)] : [],
+    });
+    const substationLabel =
+      subData && typeof subData === "object" && subData.name ? `${subData.name} (${this.id})` : this.id;
+    const lookupRows = buildPlayerLookupRows(playerRows, allocRows);
 
     return `
       ${LayoutViewModel.pageHeader({
         title: "Substation",
-        subtitle: this.id,
+        subtitle: substationLabel,
         actionsHtml: `<a class="btn btn-light btn-sm" href="/energy/substations" data-action="back"><i class="bi bi-chevron-left me-1"></i>Back</a>`,
       })}
       ${ResourceView.render(sub, {
         success: (s) => `
           <div class="sg-stat-grid">
             ${statCard({ label: "Name", value: s?.name ?? "—" })}
-            ${statCard({ label: "Owner", value: s?.owner ?? "—" })}
-            ${statCard({ label: "Creator", value: s?.creator ?? "—" })}
+            ${statCard({ label: "Owner", valueHtml: renderEntityRef(s?.owner, lookup) })}
+            ${statCard({ label: "Creator", valueHtml: renderEntityRef(s?.creator, lookup) })}
           </div>
         `,
       })}
-      <div class="row g-3">
-        <div class="col-md-6">
-          <div class="sg-card">
-            <div class="sg-card__title">Connected players</div>
-            ${ResourceView.render(players, {
-              success: (rows) =>
-                Array.isArray(rows) && rows.length
-                  ? `<ul class="list-unstyled mb-0">${rows
-                      .map(
-                        (p) =>
-                          `<li class="d-flex justify-content-between border-bottom py-2"><a href="/players/${escapeAttr(p.id)}" data-action="goto" data-path="/players/${escapeAttr(p.id)}" class="font-monospace small">${escapeHtml(p.id)}</a><span class="text-secondary">${escapeHtml(p.guild_id ?? "")}</span></li>`,
-                      )
-                      .join("")}</ul>`
-                  : `<div class="sg-empty"><div class="sg-empty__hint">No players connected.</div></div>`,
-            })}
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="sg-card">
-            <div class="sg-card__title">Outbound allocations</div>
-            ${ResourceView.render(allocs, {
-              success: (rows) =>
-                Array.isArray(rows) && rows.length
-                  ? tableShell({
-                      embedded: true,
-                      tableHtml: `<thead><tr><th>ID</th><th>Type</th><th>Destination</th><th>Controller</th><th></th></tr></thead><tbody>${rows
-                        .map(
-                          (a) =>
-                            `<tr>
-                              <td class="sg-datatable__cell-mono">${escapeHtml(allocationId(a))}</td>
-                              <td>${escapeHtml(allocationTypeLabel(a))}</td>
-                              <td class="sg-datatable__cell-mono">${escapeHtml(allocationDestinationId(a))}</td>
-                              <td class="sg-datatable__cell-mono">${escapeHtml(allocationControllerId(a))}</td>
-                              <td class="text-end">
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-action="delete-alloc" data-id="${escapeAttr(allocationId(a))}">Delete</button>
-                              </td>
-                            </tr>`,
-                        )
-                        .join("")}</tbody>`,
-                    })
-                  : `<div class="sg-empty"><div class="sg-empty__hint">No outbound allocations.</div></div>`,
-            })}
-          </div>
-        </div>
+      <div class="sg-card mt-3">
+        <div class="sg-card__title">Player lookup</div>
+        <p class="text-secondary small mb-3">Players in this substation and their power allocations.</p>
+        ${players.status === "loading" || allocs.status === "loading"
+          ? `<div class="sg-empty"><div class="sg-empty__hint">Loading…</div></div>`
+          : ResourceView.render(success(lookupRows), {
+            success: (rows) => {
+              const t = new DataTable({
+                id: "player-lookup-table",
+                searchScope: "Players",
+                embedded: true,
+                columns: [
+                  {
+                    id: "player",
+                    label: "Player",
+                    get: (row) => row.name ?? row.playerId,
+                    sort: (a, b) => String(a.name ?? a.playerId).localeCompare(String(b.name ?? b.playerId)),
+                    render: (_v, row) => renderEntityLink(row.playerId, lookup),
+                  },
+                  {
+                    id: "amount",
+                    label: "Amount",
+                    align: "end",
+                    get: (row) =>
+                      row.allocation
+                        ? formatAllocationPower(row.allocation, gridIndex)
+                        : formatGridAttribute("power", undefined),
+                  },
+                  {
+                    id: "source",
+                    label: "Power source",
+                    get: (row) => (row.allocation ? allocationSourceId(row.allocation) : "—"),
+                    render: (v) => renderEntityRef(v, lookup),
+                  },
+                  {
+                    id: "playerId",
+                    label: "Player ID",
+                    get: (row) => row.playerId,
+                    render: (v) => renderEntityRef(v, lookup),
+                  },
+                  {
+                    id: "actions",
+                    label: "",
+                    align: "end",
+                    get: () => "",
+                    render: (_v, row) =>
+                      row.allocation
+                        ? `<button type="button" class="btn btn-sm btn-outline-danger" data-action="delete-alloc" data-id="${escapeAttr(allocationId(row.allocation))}">Delete</button>`
+                        : "",
+                  },
+                ],
+                rows: Array.isArray(rows) ? rows : [],
+                emptyMessage: "No players connected to this substation.",
+              });
+              return t.renderHTML();
+            },
+          })}
       </div>
       <div class="sg-card mt-3">
         <div class="sg-card__title">Create allocation</div>
@@ -164,13 +241,6 @@ class SubstationDetailViewModel extends AbstractViewModel {
       e.preventDefault();
       this.router.goto("/energy/substations");
     });
-    this.container.querySelectorAll('[data-action="goto"]').forEach((a) =>
-      a.addEventListener("click", (e) => {
-        e.preventDefault();
-        const path = /** @type {HTMLElement} */ (a).dataset.path;
-        if (path) this.router.goto(path);
-      }),
-    );
 
     const createSchema = {
       controller: [required()],
@@ -208,7 +278,4 @@ class SubstationDetailViewModel extends AbstractViewModel {
 
 function escapeAttr(s) {
   return String(s ?? "").replace(/"/g, "&quot;").replace(/&/g, "&amp;");
-}
-function escapeHtml(s) {
-  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

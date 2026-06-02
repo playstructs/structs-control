@@ -87,10 +87,13 @@
  *   destination_id?: string,
  *   address?: string,
  *   player_id?: string,
+ *   reactor_id?: string,
  *   fuel?: string,
  *   power?: string,
  *   defusing?: boolean,
  *   defusing_p?: string,
+ *   commission?: string | number,
+ *   ratio?: string | number,
  * }} InfusionData
  */
 
@@ -137,6 +140,18 @@
  *   value?: string | number,
  *   metric?: string,
  * }} StatRowData
+ */
+
+/**
+ * @typedef {{
+ *   id?: string,
+ *   attribute_type?: string,
+ *   object_type?: string,
+ *   object_index?: number,
+ *   object_id?: string,
+ *   val?: number,
+ *   updated_at?: string,
+ * }} GridRow
  */
 
 /** Marker export so types/api.js participates in module graph for IDE typing. */

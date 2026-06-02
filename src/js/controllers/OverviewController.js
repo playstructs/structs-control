@@ -4,6 +4,9 @@ import { LayoutViewModel } from "../view_models/LayoutViewModel.js";
 import { ResourceView } from "../view_models/components/ResourceView.js";
 import { statCard } from "../view_models/components/StatCard.js";
 import { keys } from "../store/keys.js";
+import { formatUnitOrDash } from "../util/unitDisplay.js";
+import { buildEntityLookup } from "../util/entityLookup.js";
+import { renderEntityLink, renderEntityRef } from "../util/entityLink.js";
 
 export class OverviewController extends AbstractController {
   /**
@@ -66,14 +69,15 @@ class OverviewViewModel extends AbstractViewModel {
     const substationData = /** @type {import("../types/api.js").SubstationData[] | null} */ (substations.data);
 
     const powerData = /** @type {Record<string, unknown> | null} */ (powerStats.data);
+    const lookup = buildEntityLookup(this.store);
 
     const stats = `
       <div class="sg-stat-grid">
-        ${statCard({ label: "Guild ID", value: this.guildId })}
+        ${statCard({ label: "Guild ID", valueHtml: renderEntityLink(this.guildId, lookup) })}
         ${statCard({ label: "Players", value: String(memberCount.data ?? rosterData?.length ?? "—") })}
         ${statCard({ label: "Substations", value: String(substations.status === "missing" ? "—" : substationData?.length ?? "—") })}
-        ${statCard({ label: "Reactor", value: String(guildData?.reactor_id ?? "—") })}
-        ${statCard({ label: "Guild power", value: String(powerData?.power ?? powerData?.total_power ?? (powerStats.status === "missing" ? "—" : "—")) })}
+        ${statCard({ label: "Reactor", valueHtml: renderEntityRef(guildData?.reactor_id, lookup) })}
+        ${statCard({ label: "Guild power", value: formatUnitOrDash(powerData?.power ?? powerData?.total_power, "milliwatt") })}
       </div>
     `;
 
@@ -85,10 +89,10 @@ class OverviewViewModel extends AbstractViewModel {
             <div class="sg-card__title">Guild config</div>
             <dl class="row mb-0">
               ${row("Name", g?.name)}
-              ${row("Reactor", g?.reactor_id)}
-              ${row("Owner", g?.owner_id)}
-              ${row("Entry substation", g?.entry_substation_id)}
-              ${row("Join infusion minimum", g?.join_infusion_minimum)}
+              ${entityRow("Reactor", g?.reactor_id, lookup)}
+              ${entityRow("Owner", g?.owner_id, lookup)}
+              ${entityRow("Entry substation", g?.entry_substation_id, lookup)}
+              ${row("Join infusion minimum", formatUnitOrDash(g?.join_infusion_minimum, "ualpha"))}
               ${row("Endpoint", g?.endpoint)}
               ${row("Chain WS", g?.client_websocket)}
               ${row("GRASS WS", g?.grass_nats_websocket)}
@@ -104,6 +108,14 @@ class OverviewViewModel extends AbstractViewModel {
       ${config}
     `;
   }
+}
+
+function entityRow(label, value, lookup) {
+  if (value == null || value === "") return "";
+  return `
+    <dt class="col-sm-4 text-secondary fw-normal small text-uppercase">${escapeHtml(label)}</dt>
+    <dd class="col-sm-8 mb-2">${renderEntityRef(value, lookup)}</dd>
+  `;
 }
 
 function row(label, value) {

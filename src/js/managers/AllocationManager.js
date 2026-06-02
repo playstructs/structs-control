@@ -31,6 +31,13 @@ export class AllocationManager {
     return this.store.query(keys.allocationBySource(sourceId), () => this.guildAPI.getAllocationsBySource(sourceId));
   }
 
+  /** @param {string} destinationId */
+  fetchByDestination(destinationId) {
+    return this.store.query(keys.allocationByDestination(destinationId), () =>
+      this.guildAPI.getAllocationsByDestination(destinationId),
+    );
+  }
+
   /**
    * @param {{ controller?: string, sourceObjectId: string, allocationType: string, power: string | number }} body
    */

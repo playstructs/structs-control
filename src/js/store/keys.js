@@ -46,6 +46,10 @@ export const keys = {
   allocation: (allocationId) => Object.freeze(["allocation", String(allocationId)]),
   allocationList: () => Object.freeze(["allocation", "list"]),
   allocationBySource: (sourceId) => Object.freeze(["allocation", "by-source", String(sourceId)]),
+  allocationByDestination: (destinationId) =>
+    Object.freeze(["allocation", "by-destination", String(destinationId)]),
+
+  gridIndex: () => Object.freeze(["grid", "index"]),
 
   timestamp: () => Object.freeze(["meta", "timestamp"]),
   session: () => Object.freeze(["meta", "session"]),

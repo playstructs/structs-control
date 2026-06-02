@@ -75,6 +75,7 @@ export class InvalidationBridge {
       const out = [keys.allocationList()];
       if (data?.allocation_id) out.push(keys.allocation(data.allocation_id));
       if (data?.source_id) out.push(keys.allocationBySource(data.source_id));
+      if (data?.destination_id) out.push(keys.allocationByDestination(data.destination_id));
       return out;
     });
     this.on("structs.reactor.*", (data) => {

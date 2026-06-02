@@ -72,6 +72,22 @@ export class LayoutViewModel extends AbstractViewModel {
     if (this.activePage) this.activePage.unmount();
     this.activePage = viewModel;
     viewModel.mount(slot);
+    this._bindSpaLinks(slot);
+  }
+
+  /** @param {HTMLElement} root */
+  _bindSpaLinks(root) {
+    if (root.dataset.spaLinksBound === "1") return;
+    root.dataset.spaLinksBound = "1";
+    root.addEventListener("click", (e) => {
+      const target = /** @type {HTMLElement | null} */ (e.target);
+      const anchor = target?.closest("a[data-spa-link]");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      if (!href || !href.startsWith("/")) return;
+      e.preventDefault();
+      this.router.goto(href);
+    });
   }
 
   /**

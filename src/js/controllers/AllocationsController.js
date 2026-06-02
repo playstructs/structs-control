@@ -11,48 +11,69 @@ import {
   allocationId,
   allocationSourceId,
   allocationTypeLabel,
+  formatAllocationPower,
 } from "../util/allocationDisplay.js";
 import { bindDataTable, gotoTableState } from "../util/bindDataTable.js";
+import { buildEntityLookup } from "../util/entityLookup.js";
+import { renderEntityRef } from "../util/entityLink.js";
 
-export class EnergyGridController extends AbstractController {
+export class AllocationsController extends AbstractController {
   constructor(deps) {
-    super("EnergyGrid", deps.store);
+    super("Allocations", deps.store);
     this.layout = deps.layout;
     this.router = deps.router;
     this.allocationManager = deps.allocationManager;
+    this.gridManager = deps.gridManager;
   }
 
   activate(_page, params) {
     void this.allocationManager.fetchList();
     this.layout.mountContent(
-      new EnergyGridViewModel({
+      new AllocationsViewModel({
         store: this.store,
         router: this.router,
         allocationManager: this.allocationManager,
+        gridManager: this.gridManager,
         params: params ?? {},
       }),
     );
   }
 }
 
-class EnergyGridViewModel extends AbstractViewModel {
+class AllocationsViewModel extends AbstractViewModel {
   constructor(deps) {
     super();
     this.store = deps.store;
     this.router = deps.router;
     this.allocationManager = deps.allocationManager;
+    this.gridManager = deps.gridManager;
     this.params = deps.params;
   }
 
   mount(container) {
     super.mount(container);
     this.subscribe(this.store, keys.allocationList());
+    this.subscribe(this.store, keys.gridIndex());
+  }
+
+  /** @returns {import("../util/gridIndex.js").GridIndex | null} */
+  _gridIndex() {
+    const res = this.store.read(keys.gridIndex());
+    return res.status === "success" && res.data && typeof res.data === "object"
+      ? /** @type {import("../util/gridIndex.js").GridIndex} */ (res.data)
+      : null;
   }
 
   render() {
     const list = this.store.read(keys.allocationList());
+    const gridIndex = this._gridIndex();
+    const lookup = buildEntityLookup(this.store);
+
     return `
-      ${LayoutViewModel.pageHeader({ title: "Energy grid", subtitle: "All power allocations on the guild chain." })}
+      ${LayoutViewModel.pageHeader({
+        title: "Allocations",
+        subtitle: "Power flow from sources to destinations on the guild chain.",
+      })}
       ${ResourceView.render(list, {
         success: (rows) => {
           const t = new DataTable({
@@ -60,30 +81,45 @@ class EnergyGridViewModel extends AbstractViewModel {
             searchScope: "Allocations",
             columns: [
               {
-                id: "id",
-                label: "ID",
-                get: allocationId,
-                sort: (a, b) => allocationId(a).localeCompare(allocationId(b)),
-                render: (v) => `<span class="sg-datatable__cell-mono">${escapeHtml(v)}</span>`,
-              },
-              { id: "type", label: "Type", get: allocationTypeLabel },
-              {
-                id: "source",
-                label: "Source",
-                get: allocationSourceId,
-                render: (v) => `<span class="sg-datatable__cell-mono">${escapeHtml(v)}</span>`,
+                id: "type",
+                label: "Type",
+                get: allocationTypeLabel,
+                sort: (a, b) => allocationTypeLabel(a).localeCompare(allocationTypeLabel(b)),
               },
               {
                 id: "destination",
                 label: "Destination",
                 get: allocationDestinationId,
-                render: (v) => `<span class="sg-datatable__cell-mono">${escapeHtml(v)}</span>`,
+                sort: (a, b) => allocationDestinationId(a).localeCompare(allocationDestinationId(b)),
+                render: (v) => renderEntityRef(v, lookup),
+              },
+              {
+                id: "source",
+                label: "Power source",
+                get: allocationSourceId,
+                sort: (a, b) => allocationSourceId(a).localeCompare(allocationSourceId(b)),
+                render: (v) => renderEntityRef(v, lookup),
+              },
+              {
+                id: "power",
+                label: "Amount",
+                align: "end",
+                get: (row) => formatAllocationPower(row, gridIndex),
+                sort: (a, b) =>
+                  Number(formatAllocationPower(a, gridIndex).replace(/\D/g, "") || 0) -
+                  Number(formatAllocationPower(b, gridIndex).replace(/\D/g, "") || 0),
               },
               {
                 id: "controller",
                 label: "Controller",
                 get: allocationControllerId,
-                render: (v) => `<span class="sg-datatable__cell-mono">${escapeHtml(v)}</span>`,
+                render: (v) => renderEntityRef(v, lookup),
+              },
+              {
+                id: "id",
+                label: "ID",
+                get: allocationId,
+                render: (v) => renderEntityRef(v, lookup),
               },
               {
                 id: "actions",
@@ -115,7 +151,7 @@ class EnergyGridViewModel extends AbstractViewModel {
     if (!root) return;
     const params = this.params;
     bindDataTable(root, params, {
-      onChange: (next) => gotoTableState(this.router, "/energy/grid", params, next),
+      onChange: (next) => gotoTableState(this.router, "/energy/allocations", params, next),
     });
 
     root.querySelectorAll('[data-action="delete-alloc"]').forEach((btn) =>
@@ -148,7 +184,4 @@ class EnergyGridViewModel extends AbstractViewModel {
 
 function escapeAttr(s) {
   return String(s ?? "").replace(/"/g, "&quot;").replace(/&/g, "&amp;");
-}
-function escapeHtml(s) {
-  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

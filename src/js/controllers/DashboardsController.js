@@ -4,6 +4,7 @@ import { LayoutViewModel } from "../view_models/LayoutViewModel.js";
 import { ResourceView } from "../view_models/components/ResourceView.js";
 import { statCard } from "../view_models/components/StatCard.js";
 import { keys } from "../store/keys.js";
+import { formatUnitOrDash } from "../util/unitDisplay.js";
 
 export class DashboardsController extends AbstractController {
   constructor(deps) {
@@ -72,8 +73,8 @@ function renderStatSummary(res) {
       const earliest = list[0];
       return `
         <div class="sg-stat-grid">
-          ${statCard({ label: "Latest", value: String(latest?.value ?? "—") })}
-          ${statCard({ label: "Earliest", value: String(earliest?.value ?? "—") })}
+          ${statCard({ label: "Latest", value: formatUnitOrDash(latest?.value, "milliwatt") })}
+          ${statCard({ label: "Earliest", value: formatUnitOrDash(earliest?.value, "milliwatt") })}
           ${statCard({ label: "Samples", value: String(list.length) })}
         </div>
       `;

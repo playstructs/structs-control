@@ -49,7 +49,7 @@ export const SIDEBAR_ITEMS = [
     pills: [
       { label: "Reactors", path: "/energy/reactors" },
       { label: "Substations", path: "/energy/substations" },
-      { label: "Energy Grid", path: "/energy/grid" },
+      { label: "Allocations", path: "/energy/allocations" },
     ],
   },
   {

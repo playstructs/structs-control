@@ -51,6 +51,7 @@ Guild ID used for probes: `0-1`. Unauthenticated probes; catalog routes that exi
 | Providers | — | — | `GET /provider/all/page/1` | 401 | Catalog |
 | Agreements | — | — | `GET /agreement/all/page/1` | 401 | Catalog |
 | Stats | — | — | `GET /stat/{metric}/object/{key}/range/page/1` | 401 | Catalog |
+| Grid | — | — | `GET /grid/all/page/1` | 401 | Catalog index (prefetch at boot) |
 
 ## Endpoints in use
 
@@ -72,8 +73,9 @@ Guild ID used for probes: `0-1`. Unauthenticated probes; catalog routes that exi
 | `GET` | `/substation/all/page/{n}` | Substations list | catalog only |
 | `GET` | `/substation/{id}` | SubstationDetail | find row in catalog list (no bespoke GET) |
 | `GET` | `/player/list/substation/{id}/page/{n}` | SubstationDetail | connected players |
-| `GET` | `/allocation/all/page/{n}` | EnergyGrid | catalog; legacy `/allocation` fallback |
-| `GET` | `/allocation/source/{sourceId}/page/{n}` | SubstationDetail | per source |
+| `GET` | `/allocation/all/page/{n}` | Allocations | catalog; legacy `/allocation` fallback |
+| `GET` | `/allocation/source/{sourceId}/page/{n}` | SubstationDetail | outbound from source |
+| `GET` | `/allocation/destination/{destinationId}/page/{n}` | (optional) | inbound to destination |
 | `GET` | `/reactor/guild/{guildId}/page/{n}` | Reactors | catalog; legacy `/reactor/list` fallback |
 | `GET` | `/reactor/all/page/{n}` | Reactors | network list |
 | `GET` | `/reactor/{id}` | ReactorProfile | single reactor (optional) |
@@ -82,6 +84,19 @@ Guild ID used for probes: `0-1`. Unauthenticated probes; catalog routes that exi
 | `GET` | `/agreement/provider/{providerId}/page/{n}` | Agreements page | agreements per provider |
 | `GET` | `/stat/{metric}/object/{key}/range/page/{n}` | Dashboards | time-series metrics |
 | `GET` | `/setting` | Infrastructure | live tunables |
+| `GET` | `/grid/all/page/{n}` | GridManager | full grid catalog; normalized to `keys.gridIndex()` |
+| `GET` | `/grid/object/{object_id}/page/{n}` | (not used by SPA) | per-object grid rows; SPA uses bulk index instead |
+| `GET` | `/grid/attribute-type/{attribute_type}/page/{n}` | (not used by SPA) | filter by attribute type |
+
+### Grid index (SPA)
+
+The admin SPA keeps a warm in-memory index at `keys.gridIndex()`:
+
+- **Boot:** after `/guild/this`, fetches all pages of `/grid/all/page/{n}` and pivots rows into `{ [object_id]: { capacity, load, ... } }`.
+- **Live updates:** GRASS subjects `structs.grid.{objectType}.{objectId}` with `category` (attribute name) and `value` patch the index in place via `GridListener` — no full refetch.
+- **Consumers:** Reactors and Substations list pages read capacity/load from the index; player profile still uses bespoke `GET /player/{id}` grid joins.
+- **Limit:** catalog helper caps at 5000 rows (50 × 100). If the grid table grows beyond that, request a guild-scoped grid endpoint from the API team.
+
 
 ### Removed (v0.16)
 

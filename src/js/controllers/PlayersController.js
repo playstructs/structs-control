@@ -7,6 +7,8 @@ import { NotificationDialogue } from "../framework/NotificationDialogue.js";
 import { notify } from "../store/notify.js";
 import { keys } from "../store/keys.js";
 import { bindDataTable, gotoTableState } from "../util/bindDataTable.js";
+import { buildEntityLookup } from "../util/entityLookup.js";
+import { renderEntityLink } from "../util/entityLink.js";
 
 export class PlayersController extends AbstractController {
   /**
@@ -70,6 +72,7 @@ class PlayersListViewModel extends AbstractViewModel {
 
   render() {
     const roster = this.store.read(keys.guildRoster(this.guildId));
+    const lookup = buildEntityLookup(this.store);
     const params = this.params;
 
     const body = ResourceView.render(roster, {
@@ -80,7 +83,13 @@ class PlayersListViewModel extends AbstractViewModel {
           searchScope: "Players",
           toolbarActionsHtml: `<a class="sg-btn-lunar" href="/players/bulk" data-action="bulk"><i class="bi bi-people"></i> Bulk actions</a>`,
           columns: [
-            { id: "id", label: "Player ID", get: (r) => r.id, sort: (a, b) => String(a.id).localeCompare(String(b.id)) },
+            {
+              id: "id",
+              label: "Player",
+              get: (r) => r.id,
+              sort: (a, b) => String(a.id).localeCompare(String(b.id)),
+              render: (v) => renderEntityLink(v, lookup),
+            },
             { id: "name", label: "Name", get: (r) => r.name ?? "—", sort: (a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")) },
             {
               id: "address",
@@ -148,6 +157,7 @@ class PlayersBulkViewModel extends AbstractViewModel {
 
   render() {
     const roster = this.store.read(keys.guildRoster(this.guildId));
+    const lookup = buildEntityLookup(this.store);
     return `
       ${LayoutViewModel.pageHeader({
         title: "Bulk operations",
@@ -162,8 +172,7 @@ class PlayersBulkViewModel extends AbstractViewModel {
               (r) => `
             <label class="d-flex align-items-center gap-2 p-2 border-bottom">
               <input type="checkbox" class="form-check-input" data-player-id="${escapeAttr(r.id)}" ${this.selected.has(r.id) ? "checked" : ""} />
-              <span class="font-monospace small">${escapeHtml(r.id)}</span>
-              <span class="text-secondary">${escapeHtml(r.name ?? "—")}</span>
+              <span>${renderEntityLink(r.id, lookup, { className: "small" })}</span>
             </label>`,
             )
             .join("");

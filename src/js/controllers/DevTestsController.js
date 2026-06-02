@@ -5,6 +5,10 @@ import { DTestFramework } from "../framework/DTestFramework.js";
 import { storeTests } from "../../../tests/store.test.js";
 import { authTests } from "../../../tests/auth.test.js";
 import { txQueueTests } from "../../../tests/tx-queue.test.js";
+import { gridIndexTests } from "../../../tests/grid-index.test.js";
+import { unitDisplayTests } from "../../../tests/unit-display.test.js";
+import { entityLinkTests } from "../../../tests/entity-link.test.js";
+import { percentDisplayTests } from "../../../tests/percent-display.test.js";
 
 /**
  * /dev/tests -- runs the in-browser test suite and renders results.
@@ -41,6 +45,10 @@ class DevTestsViewModel extends AbstractViewModel {
     storeTests(t);
     authTests(t);
     txQueueTests(t);
+    gridIndexTests(t);
+    unitDisplayTests(t);
+    entityLinkTests(t);
+    percentDisplayTests(t);
     this.results = await t.run();
     this.running = false;
     this.update();
@@ -50,7 +58,7 @@ class DevTestsViewModel extends AbstractViewModel {
     return `
       ${LayoutViewModel.pageHeader({
         title: "Tests",
-        subtitle: "Critical-path checks for Store, Auth, and TxQueue.",
+        subtitle: "Critical-path checks for Store, Auth, TxQueue, grid index, unit display, and entity links.",
         actionsHtml: `<button class="btn btn-primary btn-sm" data-action="run" ${this.running ? "disabled" : ""}>${this.running ? "Running..." : "Re-run"}</button>`,
       })}
       ${this.running ? '<div class="sg-loading"><div class="spinner-border text-primary"></div></div>' : this._resultsHtml()}

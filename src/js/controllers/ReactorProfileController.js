@@ -8,6 +8,10 @@ import { notify } from "../store/notify.js";
 import { statusBadge } from "../util/statusDisplay.js";
 import { readFormValues, validateForm, required, pattern } from "../util/validate.js";
 import { keys } from "../store/keys.js";
+import { formatGridAttribute } from "../util/unitDisplay.js";
+import { formatCommissionPercent } from "../util/percentDisplay.js";
+import { buildEntityLookup } from "../util/entityLookup.js";
+import { renderEntityRef } from "../util/entityLink.js";
 
 export class ReactorProfileController extends AbstractController {
   constructor(deps) {
@@ -56,6 +60,7 @@ class ReactorProfileViewModel extends AbstractViewModel {
     const reactor = this.store.read(keys.reactor(this.id));
     const infusion = this.store.read(keys.reactorInfusion(this.id));
     const sessionAddress = this.store.session?.data?.address ?? "";
+    const lookup = buildEntityLookup(this.store);
 
     return `
       ${LayoutViewModel.pageHeader({
@@ -66,10 +71,10 @@ class ReactorProfileViewModel extends AbstractViewModel {
       ${ResourceView.render(reactor, {
         success: (r) => `
           <div class="sg-stat-grid">
-            ${statCard({ label: "Owner", value: r?.owner ?? "—" })}
-            ${statCard({ label: "Guild", value: r?.guild_id ?? "—" })}
+            ${statCard({ label: "Owner", valueHtml: renderEntityRef(r?.owner, lookup) })}
+            ${statCard({ label: "Guild", valueHtml: renderEntityRef(r?.guild_id, lookup) })}
             ${statCard({ label: "Validator", value: r?.validator ?? "—" })}
-            ${statCard({ label: "Commission", value: r?.default_commission ?? "—" })}
+            ${statCard({ label: "Commission", value: formatCommissionPercent(r?.default_commission) })}
           </div>
         `,
       })}
@@ -125,14 +130,15 @@ class ReactorProfileViewModel extends AbstractViewModel {
             }
             return tableShell({
               embedded: true,
-              tableHtml: `<thead><tr><th>Player</th><th>Address</th><th>Fuel</th><th>Power</th><th>Defusing</th></tr></thead><tbody>${list
+              tableHtml: `<thead><tr><th>Player</th><th>Address</th><th>Fuel</th><th>Power</th><th>Commission</th><th>Defusing</th></tr></thead><tbody>${list
                 .map(
                   (i) =>
                     `<tr>
-                      <td class="sg-datatable__cell-mono">${escapeHtml(i.player_id ?? "—")}</td>
+                      <td>${renderEntityRef(i.player_id, lookup)}</td>
                       <td class="sg-datatable__cell-mono">${escapeHtml(i.address ?? "—")}</td>
-                      <td>${escapeHtml(i.fuel ?? "—")}</td>
-                      <td>${escapeHtml(i.power ?? "—")}</td>
+                      <td>${escapeHtml(formatGridAttribute("fuel", i.fuel))}</td>
+                      <td>${escapeHtml(formatGridAttribute("power", i.power))}</td>
+                      <td>${escapeHtml(formatCommissionPercent(i.commission))}</td>
                       <td>${statusBadge(i.defusing ? "Pending" : "Online")}</td>
                     </tr>`,
                 )

@@ -6,6 +6,10 @@ import { floatingLabelField } from "../view_models/components/FloatingLabelField
 import { notify } from "../store/notify.js";
 import { validateForm, required, maxLength, readFormValues } from "../util/validate.js";
 import { keys } from "../store/keys.js";
+import { formatGridAttributeOrDash, formatUnitOrZero } from "../util/unitDisplay.js";
+import { formatCommissionPercent } from "../util/percentDisplay.js";
+import { buildEntityLookup, entityLabel } from "../util/entityLookup.js";
+import { renderEntityRef } from "../util/entityLink.js";
 
 export class PlayerProfileController extends AbstractController {
   constructor(deps) {
@@ -58,11 +62,14 @@ class PlayerProfileViewModel extends AbstractViewModel {
     const player = this.store.read(keys.player(this.playerId));
     const addresses = this.store.read(keys.playerAddresses(this.playerId));
     const infusion = this.store.read(keys.playerInfusion(this.playerId));
+    const lookup = buildEntityLookup(this.store, {
+      players: player.status === "success" && player.data ? [player.data] : [],
+    });
 
     return `
       ${LayoutViewModel.pageHeader({
         title: "Player",
-        subtitle: this.playerId,
+        subtitle: entityLabel(this.playerId, lookup),
         actionsHtml: `<a class="btn btn-light btn-sm" href="/players" data-action="back"><i class="bi bi-chevron-left me-1"></i>Back to roster</a>`,
       })}
       ${ResourceView.render(player, {
@@ -91,10 +98,10 @@ class PlayerProfileViewModel extends AbstractViewModel {
               <div class="sg-card mt-3">
                 <div class="sg-card__title">Power</div>
                 <dl class="row mb-0">
-                  ${dl("Capacity", p?.capacity)}
-                  ${dl("Load", p?.load)}
-                  ${dl("Ore", p?.ore)}
-                  ${dl("Alpha", p?.alpha)}
+                  ${dl("Capacity", formatGridAttributeOrDash("capacity", p?.capacity))}
+                  ${dl("Load", formatGridAttributeOrDash("load", p?.load))}
+                  ${dl("Ore", formatGridAttributeOrDash("ore", p?.ore))}
+                  ${dl("Alpha", formatUnitOrZero(p?.alpha, "ualpha"))}
                 </dl>
               </div>
             </div>
@@ -115,7 +122,7 @@ class PlayerProfileViewModel extends AbstractViewModel {
                 ${ResourceView.render(infusion, {
                   success: (i) =>
                     i
-                      ? `<dl class="row mb-0">${dl("Reactor", i.reactor_id)}${dl("Amount", i.amount)}${dl("Active", i.active ? "Yes" : "No")}</dl>`
+                      ? `<dl class="row mb-0">${dlHtml("Reactor", renderEntityRef(i.destination_id ?? i.reactor_id, lookup))}${dl("Fuel", formatGridAttributeOrDash("fuel", i.fuel))}${dl("Power", formatGridAttributeOrDash("power", i.power))}${dl("Commission", formatCommissionPercent(i.commission))}${dl("Defusing", i.defusing ? "Yes" : "No")}</dl>`
                       : `<div class="sg-empty"><div class="sg-empty__hint">Not infused</div></div>`,
                 })}
               </div>
@@ -170,8 +177,13 @@ class PlayerProfileViewModel extends AbstractViewModel {
 }
 
 function dl(label, value) {
-  if (value == null || value === "") return "";
-  return `<dt class="col-sm-4 text-secondary fw-normal small text-uppercase">${escapeHtml(label)}</dt><dd class="col-sm-8 mb-2">${escapeHtml(value)}</dd>`;
+  if (value == null || value === "" || value === "—") return "";
+  return `<dt class="col-sm-4 text-secondary fw-normal small text-uppercase">${escapeHtml(label)}</dt><dd class="col-sm-8 mb-2">${escapeHtml(String(value))}</dd>`;
+}
+
+function dlHtml(label, html) {
+  if (!html) return "";
+  return `<dt class="col-sm-4 text-secondary fw-normal small text-uppercase">${escapeHtml(label)}</dt><dd class="col-sm-8 mb-2">${html}</dd>`;
 }
 function escapeAttr(s) {
   return String(s ?? "").replace(/"/g, "&quot;").replace(/&/g, "&amp;");

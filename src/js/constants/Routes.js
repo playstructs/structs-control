@@ -33,7 +33,8 @@ export const ROUTES = [
   { path: "/energy/reactors/:id", controller: "ReactorProfile", page: "index", sidebar: "energy", pill: "/energy/reactors", loginRequired: true },
   { path: "/energy/substations", controller: "Substations", page: "index", sidebar: "energy", loginRequired: true },
   { path: "/energy/substations/:id", controller: "SubstationDetail", page: "index", sidebar: "energy", pill: "/energy/substations", loginRequired: true },
-  { path: "/energy/grid", controller: "EnergyGrid", page: "index", sidebar: "energy", loginRequired: true },
+  { path: "/energy/allocations", controller: "Allocations", page: "index", sidebar: "energy", loginRequired: true },
+  { path: "/energy/grid", controller: "Allocations", page: "index", sidebar: "energy", pill: "/energy/allocations", loginRequired: true },
 
   // Dashboards
   { path: "/alerts", controller: "Activity", page: "index", sidebar: "dashboards", loginRequired: true },

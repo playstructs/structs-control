@@ -5,6 +5,9 @@ import { ResourceView } from "../view_models/components/ResourceView.js";
 import { DataTable } from "../view_models/components/DataTable.js";
 import { keys } from "../store/keys.js";
 import { bindDataTable, gotoTableState } from "../util/bindDataTable.js";
+import { formatGridAttributeOrDash } from "../util/unitDisplay.js";
+import { buildEntityLookup } from "../util/entityLookup.js";
+import { renderEntityLink } from "../util/entityLink.js";
 
 export class SubstationsController extends AbstractController {
   constructor(deps) {
@@ -12,12 +15,18 @@ export class SubstationsController extends AbstractController {
     this.layout = deps.layout;
     this.router = deps.router;
     this.substationManager = deps.substationManager;
+    this.gridManager = deps.gridManager;
   }
 
   activate(_page, params) {
     void this.substationManager.fetchList();
     this.layout.mountContent(
-      new SubstationsListViewModel({ store: this.store, router: this.router, params: params ?? {} }),
+      new SubstationsListViewModel({
+        store: this.store,
+        router: this.router,
+        params: params ?? {},
+        gridManager: this.gridManager,
+      }),
     );
   }
 }
@@ -28,15 +37,19 @@ class SubstationsListViewModel extends AbstractViewModel {
     this.store = deps.store;
     this.router = deps.router;
     this.params = deps.params;
+    this.gridManager = deps.gridManager;
   }
 
   mount(container) {
     super.mount(container);
     this.subscribe(this.store, keys.substationList());
+    this.subscribe(this.store, keys.gridIndex());
   }
 
   render() {
     const list = this.store.read(keys.substationList());
+    const lookup = buildEntityLookup(this.store);
+    const gridManager = this.gridManager;
     return `
       ${LayoutViewModel.pageHeader({ title: "Substations", subtitle: "Power substations under this guild." })}
       ${ResourceView.render(list, {
@@ -50,11 +63,22 @@ class SubstationsListViewModel extends AbstractViewModel {
                 label: "Substation ID",
                 get: (r) => r.id,
                 sort: (a, b) => String(a.id).localeCompare(String(b.id)),
-                render: (v) => `<span class="sg-datatable__cell-mono">${escapeHtml(v)}</span>`,
+                render: (v) => renderEntityLink(v, lookup),
               },
               { id: "name", label: "Name", get: (r) => r.name ?? "—", sort: (a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")) },
-              { id: "capacity", label: "Capacity", get: (r) => r.capacity ?? "—", align: "end" },
-              { id: "load", label: "Load", get: (r) => r.load ?? "—", align: "end" },
+              {
+                id: "capacity",
+                label: "Capacity",
+                get: (r) =>
+                  formatGridAttributeOrDash("capacity", gridManager.getForObject(r.id).capacity ?? r.capacity),
+                align: "end",
+              },
+              {
+                id: "load",
+                label: "Load",
+                get: (r) => formatGridAttributeOrDash("load", gridManager.getForObject(r.id).load ?? r.load),
+                align: "end",
+              },
               { id: "players", label: "Players", get: (r) => r.player_count ?? 0, sort: (a, b) => (a.player_count ?? 0) - (b.player_count ?? 0), align: "end" },
             ],
             rows: Array.isArray(rows) ? rows : [],
@@ -77,6 +101,3 @@ class SubstationsListViewModel extends AbstractViewModel {
   }
 }
 
-function escapeHtml(s) {
-  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}

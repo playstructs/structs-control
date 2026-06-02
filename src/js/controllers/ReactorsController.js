@@ -4,6 +4,9 @@ import { LayoutViewModel } from "../view_models/LayoutViewModel.js";
 import { ResourceView } from "../view_models/components/ResourceView.js";
 import { tableShell } from "../view_models/components/TableShell.js";
 import { keys } from "../store/keys.js";
+import { formatGridAttributeOrDash } from "../util/unitDisplay.js";
+import { buildEntityLookup } from "../util/entityLookup.js";
+import { renderEntityLink, renderEntityRef } from "../util/entityLink.js";
 
 /**
  * Reactor endpoints are optional -- ResourceView's "missing" state renders an
@@ -15,6 +18,7 @@ export class ReactorsController extends AbstractController {
     this.layout = deps.layout;
     this.router = deps.router;
     this.reactorManager = deps.reactorManager;
+    this.gridManager = deps.gridManager;
   }
 
   activate() {
@@ -22,7 +26,14 @@ export class ReactorsController extends AbstractController {
     if (!session) return;
     void this.reactorManager.fetchList(session.guildId);
     void this.reactorManager.fetchNetwork();
-    this.layout.mountContent(new ReactorsViewModel({ store: this.store, router: this.router, guildId: session.guildId }));
+    this.layout.mountContent(
+      new ReactorsViewModel({
+        store: this.store,
+        router: this.router,
+        guildId: session.guildId,
+        gridManager: this.gridManager,
+      }),
+    );
   }
 }
 
@@ -32,12 +43,14 @@ class ReactorsViewModel extends AbstractViewModel {
     this.store = deps.store;
     this.router = deps.router;
     this.guildId = deps.guildId;
+    this.gridManager = deps.gridManager;
   }
 
   mount(container) {
     super.mount(container);
     this.subscribe(this.store, keys.reactorList(this.guildId));
     this.subscribe(this.store, keys.reactorNetwork());
+    this.subscribe(this.store, keys.gridIndex());
   }
 
   render() {
@@ -49,13 +62,13 @@ class ReactorsViewModel extends AbstractViewModel {
         <div class="col-md-6">
           <div class="sg-card">
             <div class="sg-card__title">Your reactors</div>
-            ${renderReactorList(yours, this.router)}
+            ${renderReactorList(yours, this.router, this.gridManager, this.store)}
           </div>
         </div>
         <div class="col-md-6">
           <div class="sg-card">
             <div class="sg-card__title">Network reactors</div>
-            ${renderReactorList(network, this.router)}
+            ${renderReactorList(network, this.router, this.gridManager, this.store)}
           </div>
         </div>
       </div>
@@ -63,7 +76,11 @@ class ReactorsViewModel extends AbstractViewModel {
   }
 }
 
-function renderReactorList(res, _router) {
+/**
+ * @param {import("../managers/GridManager.js").GridManager} gridManager
+ */
+function renderReactorList(res, _router, gridManager, store) {
+  const lookup = buildEntityLookup(store);
   return ResourceView.render(res, {
     success: (rows) => {
       const list = Array.isArray(rows) ? rows : [];
@@ -71,24 +88,24 @@ function renderReactorList(res, _router) {
       return tableShell({
         embedded: true,
         tableHtml: `<thead><tr><th>ID</th><th>Owner</th><th class="text-end">Capacity</th><th class="text-end">Load</th></tr></thead><tbody>${list
-          .map(
-            (r) =>
-              `<tr>
-                <td><a href="/energy/reactors/${escapeAttr(r.id)}" class="sg-datatable__cell-mono">${escapeHtml(r.id)}</a></td>
-                <td class="sg-datatable__cell-mono">${escapeHtml(r.owner_id ?? "—")}</td>
-                <td class="text-end">${escapeHtml(r.capacity ?? "—")}</td>
-                <td class="text-end">${escapeHtml(r.load ?? "—")}</td>
-              </tr>`,
-          )
+          .map((r) => {
+            const grid = gridManager.getForObject(r.id);
+            const capacity = formatGridAttributeOrDash("capacity", grid.capacity ?? r.capacity);
+            const load = formatGridAttributeOrDash("load", grid.load ?? r.load);
+            const owner = r.owner_id ?? r.owner;
+            return `<tr>
+                <td>${renderEntityLink(r.id, lookup)}</td>
+                <td>${renderEntityRef(owner, lookup)}</td>
+                <td class="text-end">${escapeHtml(capacity)}</td>
+                <td class="text-end">${escapeHtml(load)}</td>
+              </tr>`;
+          })
           .join("")}</tbody>`,
       });
     },
   });
 }
 
-function escapeAttr(s) {
-  return String(s ?? "").replace(/"/g, "&quot;").replace(/&/g, "&amp;");
-}
 function escapeHtml(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

@@ -7,6 +7,8 @@ import { notify } from "../store/notify.js";
 import { keys } from "../store/keys.js";
 import { statusBadge } from "../util/statusDisplay.js";
 import { bindDataTable } from "../util/bindDataTable.js";
+import { buildEntityLookup } from "../util/entityLookup.js";
+import { renderEntityRef } from "../util/entityLink.js";
 
 export class MembershipApplicationsController extends AbstractController {
   constructor(deps) {
@@ -46,6 +48,7 @@ class MembershipApplicationsViewModel extends AbstractViewModel {
 
   render() {
     const apps = this.store.read(keys.membershipApplications(this.guildId));
+    const lookup = buildEntityLookup(this.store);
     return `
       ${LayoutViewModel.pageHeader({ title: "Applications", subtitle: "Pending membership requests and invites." })}
       ${ResourceView.render(apps, {
@@ -61,14 +64,14 @@ class MembershipApplicationsViewModel extends AbstractViewModel {
                 id: "player",
                 label: "Player",
                 get: (a) => a.player_id ?? a.playerId ?? "—",
-                render: (v) => `<span class="sg-datatable__cell-mono">${escapeHtml(v)}</span>`,
+                render: (v) => renderEntityRef(v, lookup),
               },
               { id: "type", label: "Type", get: (a) => a.join_type ?? a.joinType ?? "—" },
               {
                 id: "substation",
                 label: "Substation",
                 get: (a) => a.substation_id ?? a.substationId ?? "—",
-                render: (v) => `<span class="sg-datatable__cell-mono">${escapeHtml(v)}</span>`,
+                render: (v) => renderEntityRef(v, lookup),
               },
               {
                 id: "status",
@@ -142,7 +145,4 @@ class MembershipApplicationsViewModel extends AbstractViewModel {
 
 function escapeAttr(s) {
   return String(s ?? "").replace(/"/g, "&quot;").replace(/&/g, "&amp;");
-}
-function escapeHtml(s) {
-  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
