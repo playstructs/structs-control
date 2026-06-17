@@ -121,6 +121,14 @@ The Mint / Redeem page can submit transactions but cannot read current balances.
 - Either a GRASS subject `structs.tx.confirmed` with `{ hash, code, height }`
 - Or `GET /tx/{hash}` returning `{ confirmed, code, height }`
 
+### Overview page
+
+The Guild Overview screen (Figma Flows `1920:64583`) needs richer read surfaces than the current SPA has:
+
+- `GET /guild/{guildId}/power/stats` — document response shape; SPA expects optional fields for total alpha infused and period deltas (`total_alpha_infused`, `last_7_days`, `last_24_hours`, membership deltas).
+- `GET /guild/leaderboard` (or equivalent) — top guilds ranked by total alpha infused with period metrics for the Community Leaderboard card.
+- `GET /guild/{guildId}/activity` (or GRASS feed) — guild-scoped activity events for the Overview Activity panel (tx queue is session-only today).
+
 ## CORS specifically for `/auth/login`
 
 The login endpoint must return `Set-Cookie` with:

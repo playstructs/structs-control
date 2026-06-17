@@ -68,6 +68,7 @@ GRASS messages enter via `InvalidationBridge` and mark cache keys stale, which c
 - The Figma file uses "Faction"; in code, always say **Guild**.
 - The sidebar is fixed at five items (Guild / Bank / Energy Market / Dashboards / Settings). Don't add or reorder without an explicit design change.
 - 404 on the Guild API means render an empty state (`Resource{status:"missing"}`). Don't throw, don't crash.
+- whenever you have the option to implement a portion of something or implement fully always implement fully
 
 ## File layout
 

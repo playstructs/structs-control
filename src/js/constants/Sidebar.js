@@ -26,9 +26,10 @@ export const SIDEBAR_ITEMS = [
     pills: [
       { label: "Overview", path: "/overview" },
       { label: "Details", path: "/guild/details" },
-      { label: "Players", path: "/players" },
-      { label: "Applications", path: "/guild/applications" },
-      { label: "Agreements", path: "/guild/relationships" },
+      { label: "Reactors", path: "/energy/reactors" },
+      { label: "Validators", path: "/energy/validators" },
+      { label: "Energy Grid", path: "/energy/grid" },
+      { label: "Permissions", path: "/energy/permissions" },
     ],
   },
   {
@@ -45,12 +46,8 @@ export const SIDEBAR_ITEMS = [
     id: "energy",
     label: "Energy Market",
     icon: "bi-bar-chart-line",
-    defaultPath: "/energy/reactors",
-    pills: [
-      { label: "Reactors", path: "/energy/reactors" },
-      { label: "Substations", path: "/energy/substations" },
-      { label: "Allocations", path: "/energy/allocations" },
-    ],
+    defaultPath: "/energy/market",
+    pills: [{ label: "Market", path: "/energy/market" }],
   },
   {
     id: "dashboards",

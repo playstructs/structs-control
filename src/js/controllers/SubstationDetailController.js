@@ -11,12 +11,26 @@ import { keys } from "../store/keys.js";
 import {
   allocationDestinationId,
   allocationId,
+  allocationPowerRaw,
   allocationSourceId,
   formatAllocationPower,
 } from "../util/allocationDisplay.js";
 import { formatGridAttribute } from "../util/unitDisplay.js";
+import { bindDataTable, gotoTableState, tableBindState } from "../util/bindDataTable.js";
+import { parseFiltersFromParams, parseTableParams } from "../util/tableFilters.js";
+import { milliwattRangeField } from "../util/tableFilterSchemas.js";
 import { buildEntityLookup } from "../util/entityLookup.js";
 import { renderEntityLink, renderEntityRef } from "../util/entityLink.js";
+
+/** @param {import("../util/gridIndex.js").GridIndex | null} gridIndex */
+function playerLookupFilterSchema(gridIndex) {
+  return [
+    milliwattRangeField("amount", "Amount", (row) => {
+      if (!row.allocation) return null;
+      return allocationPowerRaw(allocationId(row.allocation), gridIndex);
+    }),
+  ];
+}
 
 export class SubstationDetailController extends AbstractController {
   constructor(deps) {
@@ -44,6 +58,7 @@ export class SubstationDetailController extends AbstractController {
         id,
         allocationManager: this.allocationManager,
         gridManager: this.gridManager,
+        params: params ?? {},
       }),
     );
   }
@@ -94,6 +109,7 @@ class SubstationDetailViewModel extends AbstractViewModel {
     this.id = deps.id;
     this.allocationManager = deps.allocationManager;
     this.gridManager = deps.gridManager;
+    this.params = deps.params;
   }
 
   mount(container) {
@@ -151,10 +167,18 @@ class SubstationDetailViewModel extends AbstractViewModel {
           ? `<div class="sg-empty"><div class="sg-empty__hint">Loading…</div></div>`
           : ResourceView.render(success(lookupRows), {
             success: (rows) => {
+              const filterSchema = playerLookupFilterSchema(gridIndex);
+              const filters = parseFiltersFromParams(this.params, "", filterSchema);
               const t = new DataTable({
                 id: "player-lookup-table",
-                searchScope: "Players",
+                filterSchema,
+                filters,
                 embedded: true,
+                searchColumns: [
+                  { id: "player", label: "Player" },
+                  { id: "playerId", label: "Player ID" },
+                  { id: "source", label: "Source" },
+                ],
                 columns: [
                   {
                     id: "player",
@@ -197,6 +221,7 @@ class SubstationDetailViewModel extends AbstractViewModel {
                 ],
                 rows: Array.isArray(rows) ? rows : [],
                 emptyMessage: "No players connected to this substation.",
+                ...parseTableParams(this.params),
               });
               return t.renderHTML();
             },
@@ -272,6 +297,22 @@ class SubstationDetailViewModel extends AbstractViewModel {
         void this.allocationManager.enqueueDelete({ allocationId: id, sourceId: this.id });
         notify.toast("Delete enqueued", "info");
       }),
+    );
+
+    const filterSchema = playerLookupFilterSchema(this._gridIndex());
+    const { id: _routeId, ...tableParams } = this.params;
+    bindDataTable(
+      this.container.querySelector("#player-lookup-table"),
+      {
+        id: "player-lookup-table",
+        filterSchema,
+        filters: parseFiltersFromParams(this.params, "", filterSchema),
+        ...tableBindState(this.params),
+      },
+      {
+        onChange: (next) =>
+          gotoTableState(this.router, `/energy/substations/${this.id}`, tableParams, next, filterSchema),
+      },
     );
   }
 }

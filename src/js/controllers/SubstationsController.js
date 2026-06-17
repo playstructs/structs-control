@@ -4,8 +4,25 @@ import { LayoutViewModel } from "../view_models/LayoutViewModel.js";
 import { ResourceView } from "../view_models/components/ResourceView.js";
 import { DataTable } from "../view_models/components/DataTable.js";
 import { keys } from "../store/keys.js";
-import { bindDataTable, gotoTableState } from "../util/bindDataTable.js";
+import { bindDataTable, gotoTableState, tableBindState } from "../util/bindDataTable.js";
+import { parseFiltersFromParams, parseTableParams } from "../util/tableFilters.js";
+import { milliwattRangeField, parseNumeric, rangeFilterField } from "../util/tableFilterSchemas.js";
 import { formatGridAttributeOrDash } from "../util/unitDisplay.js";
+
+/** @param {import("../managers/GridManager.js").GridManager} gridManager */
+function substationsFilterSchema(gridManager) {
+  return [
+    milliwattRangeField("capacity", "Capacity", (r) => {
+      const grid = gridManager.getForObject(r.id);
+      return grid.capacity ?? r.capacity;
+    }),
+    milliwattRangeField("load", "Load", (r) => {
+      const grid = gridManager.getForObject(r.id);
+      return grid.load ?? r.load;
+    }),
+    rangeFilterField("players", "Players", (r) => parseNumeric(r.player_count)),
+  ];
+}
 import { buildEntityLookup } from "../util/entityLookup.js";
 import { renderEntityLink } from "../util/entityLink.js";
 
@@ -54,9 +71,16 @@ class SubstationsListViewModel extends AbstractViewModel {
       ${LayoutViewModel.pageHeader({ title: "Substations", subtitle: "Power substations under this guild." })}
       ${ResourceView.render(list, {
         success: (rows) => {
+          const filterSchema = substationsFilterSchema(gridManager);
+          const filters = parseFiltersFromParams(this.params, "", filterSchema);
           const t = new DataTable({
             id: "substations-table",
-            searchScope: "Substations",
+            filterSchema,
+            filters,
+            searchColumns: [
+              { id: "id", label: "Substation ID" },
+              { id: "name", label: "Name" },
+            ],
             columns: [
               {
                 id: "id",
@@ -83,9 +107,7 @@ class SubstationsListViewModel extends AbstractViewModel {
             ],
             rows: Array.isArray(rows) ? rows : [],
             onRowClick: (r) => `/energy/substations/${r.id}`,
-            sort: this.params.sort,
-            q: this.params.q,
-            page: Number(this.params.page) || 1,
+            ...parseTableParams(this.params),
           });
           return t.renderHTML();
         },
@@ -94,10 +116,21 @@ class SubstationsListViewModel extends AbstractViewModel {
   }
 
   bind() {
-    bindDataTable(this.container?.querySelector("#substations-table"), this.params, {
-      onChange: (next) => gotoTableState(this.router, "/energy/substations", this.params, next),
-      onNavigate: (path) => this.router.goto(path),
-    });
+    const filterSchema = substationsFilterSchema(this.gridManager);
+    const params = this.params;
+    bindDataTable(
+      this.container?.querySelector("#substations-table"),
+      {
+        id: "substations-table",
+        filterSchema,
+        filters: parseFiltersFromParams(params, "", filterSchema),
+        ...tableBindState(params),
+      },
+      {
+        onChange: (next) => gotoTableState(this.router, "/energy/substations", params, next, filterSchema),
+        onNavigate: (path) => this.router.goto(path),
+      },
+    );
   }
 }
 

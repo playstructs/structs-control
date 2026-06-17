@@ -6,9 +6,14 @@ import { DataTable } from "../view_models/components/DataTable.js";
 import { NotificationDialogue } from "../framework/NotificationDialogue.js";
 import { notify } from "../store/notify.js";
 import { keys } from "../store/keys.js";
-import { bindDataTable, gotoTableState } from "../util/bindDataTable.js";
+import { bindDataTable, gotoTableState, tableBindState } from "../util/bindDataTable.js";
+import { parseFiltersFromParams, parseTableParams } from "../util/tableFilters.js";
+import { rangeFilterField } from "../util/tableFilterSchemas.js";
 import { buildEntityLookup } from "../util/entityLookup.js";
 import { renderEntityLink } from "../util/entityLink.js";
+import { tableSectionCard } from "../view_models/components/TableSectionCard.js";
+
+const PLAYERS_FILTER_SCHEMA = [rangeFilterField("rank", "Rank", (r) => r.guild_rank ?? 0)];
 
 export class PlayersController extends AbstractController {
   /**
@@ -78,9 +83,17 @@ class PlayersListViewModel extends AbstractViewModel {
     const body = ResourceView.render(roster, {
       success: (rows) => {
         const list = Array.isArray(rows) ? rows : [];
+        const filters = parseFiltersFromParams(params, "", PLAYERS_FILTER_SCHEMA);
         const table = new DataTable({
           id: "players-table",
-          searchScope: "Players",
+          embedded: true,
+          filterSchema: PLAYERS_FILTER_SCHEMA,
+          filters,
+          searchColumns: [
+            { id: "id", label: "Player" },
+            { id: "name", label: "Name" },
+            { id: "address", label: "Address" },
+          ],
           toolbarActionsHtml: `<a class="sg-btn-lunar" href="/players/bulk" data-action="bulk"><i class="bi bi-people"></i> Bulk actions</a>`,
           columns: [
             {
@@ -102,23 +115,20 @@ class PlayersListViewModel extends AbstractViewModel {
           rows: list,
           keyFn: (r) => String(r.id),
           onRowClick: (r) => `/players/${r.id}`,
-          sort: params.sort,
-          q: params.q,
-          page: Number(params.page) || 1,
+          ...parseTableParams(params),
           pageSize: 25,
           emptyMessage: "No players in this guild yet.",
         });
-        return table.renderHTML();
+        return tableSectionCard({
+          icon: "bi-people",
+          title: "Players",
+          subtitle: "Members of this guild.",
+          bodyHtml: table.renderHTML(),
+        });
       },
     });
 
-    return `
-      ${LayoutViewModel.pageHeader({
-        title: "Players",
-        subtitle: "Members of this guild.",
-      })}
-      ${body}
-    `;
+    return body;
   }
 
   bind() {
@@ -131,10 +141,20 @@ class PlayersListViewModel extends AbstractViewModel {
 
     const root = this.container.querySelector("#players-table");
     if (root) {
-      bindDataTable(root, this.params ?? {}, {
-        onChange: (next) => gotoTableState(this.router, "/players", this.params ?? {}, next),
-        onNavigate: (path) => this.router.goto(path),
-      });
+      const params = this.params ?? {};
+      bindDataTable(
+        root,
+        {
+          id: "players-table",
+          filterSchema: PLAYERS_FILTER_SCHEMA,
+          filters: parseFiltersFromParams(params, "", PLAYERS_FILTER_SCHEMA),
+          ...tableBindState(params),
+        },
+        {
+          onChange: (next) => gotoTableState(this.router, "/players", params, next, PLAYERS_FILTER_SCHEMA),
+          onNavigate: (path) => this.router.goto(path),
+        },
+      );
     }
   }
 }

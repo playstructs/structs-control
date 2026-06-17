@@ -9,12 +9,29 @@ import {
   allocationControllerId,
   allocationDestinationId,
   allocationId,
+  allocationPowerRaw,
   allocationSourceId,
   allocationTypeLabel,
   formatAllocationPower,
 } from "../util/allocationDisplay.js";
-import { bindDataTable, gotoTableState } from "../util/bindDataTable.js";
+import { bindDataTable, gotoTableState, tableBindState } from "../util/bindDataTable.js";
+import { parseFiltersFromParams, parseTableParams } from "../util/tableFilters.js";
+import { checkboxFilterField, distinctCheckboxOptions, milliwattRangeField } from "../util/tableFilterSchemas.js";
 import { buildEntityLookup } from "../util/entityLookup.js";
+
+/** @param {unknown} rows @param {import("../util/gridIndex.js").GridIndex | null} gridIndex */
+function allocationsFilterSchema(rows, gridIndex) {
+  const list = Array.isArray(rows) ? rows : [];
+  return [
+    milliwattRangeField("amount", "Amount", (row) => allocationPowerRaw(allocationId(row), gridIndex)),
+    checkboxFilterField(
+      "type",
+      "Type",
+      distinctCheckboxOptions(list, allocationTypeLabel),
+      (row) => allocationTypeLabel(row).toLowerCase(),
+    ),
+  ];
+}
 import { renderEntityRef } from "../util/entityLink.js";
 
 export class AllocationsController extends AbstractController {
@@ -76,9 +93,19 @@ class AllocationsViewModel extends AbstractViewModel {
       })}
       ${ResourceView.render(list, {
         success: (rows) => {
+          const filterSchema = allocationsFilterSchema(rows, gridIndex);
+          const filters = parseFiltersFromParams(this.params, "", filterSchema);
           const t = new DataTable({
             id: "alloc-table",
-            searchScope: "Allocations",
+            filterSchema,
+            filters,
+            searchColumns: [
+              { id: "type", label: "Type" },
+              { id: "destination", label: "Destination" },
+              { id: "source", label: "Source" },
+              { id: "controller", label: "Controller" },
+              { id: "id", label: "ID" },
+            ],
             columns: [
               {
                 id: "type",
@@ -136,9 +163,7 @@ class AllocationsViewModel extends AbstractViewModel {
               },
             ],
             rows: Array.isArray(rows) ? rows : [],
-            sort: this.params.sort,
-            q: this.params.q,
-            page: Number(this.params.page) || 1,
+            ...parseTableParams(this.params),
           });
           return t.renderHTML();
         },
@@ -150,9 +175,21 @@ class AllocationsViewModel extends AbstractViewModel {
     const root = this.container?.querySelector("#alloc-table");
     if (!root) return;
     const params = this.params;
-    bindDataTable(root, params, {
-      onChange: (next) => gotoTableState(this.router, "/energy/allocations", params, next),
-    });
+    const list = this.store.read(keys.allocationList());
+    const rows = list.status === "success" && Array.isArray(list.data) ? list.data : [];
+    const filterSchema = allocationsFilterSchema(rows, this._gridIndex());
+    bindDataTable(
+      root,
+      {
+        id: "alloc-table",
+        filterSchema,
+        filters: parseFiltersFromParams(params, "", filterSchema),
+        ...tableBindState(params),
+      },
+      {
+        onChange: (next) => gotoTableState(this.router, "/energy/allocations", params, next, filterSchema),
+      },
+    );
 
     root.querySelectorAll('[data-action="delete-alloc"]').forEach((btn) =>
       btn.addEventListener("click", () => {

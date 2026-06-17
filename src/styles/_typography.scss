@@ -1,0 +1,57 @@
+// Factions Admin typography utilities — map Figma text styles to reusable classes.
+
+.sg-type-h1 {
+  font-family: var(--sg-font-family);
+  font-size: var(--sg-type-h1-size);
+  font-weight: 900;
+  line-height: var(--sg-type-h1-lh);
+  color: var(--sg-text-title);
+}
+
+.sg-type-headline {
+  font-family: var(--sg-font-family);
+  font-size: var(--sg-type-headline-size);
+  font-weight: 600;
+  line-height: var(--sg-type-headline-lh);
+  color: var(--sg-text-title);
+}
+
+.sg-type-table-headline {
+  font-family: var(--sg-font-family);
+  font-size: var(--sg-type-table-headline-size);
+  font-weight: 600;
+  line-height: var(--sg-type-table-headline-lh);
+  color: var(--sg-text-title);
+}
+
+.sg-type-body {
+  font-family: var(--sg-font-family);
+  font-size: var(--sg-type-body-size);
+  font-weight: 400;
+  line-height: var(--sg-type-body-lh);
+  color: var(--sg-text-body);
+}
+
+.sg-type-subtitle {
+  font-family: var(--sg-font-family);
+  font-size: var(--sg-type-subtitle-size);
+  font-weight: 400;
+  line-height: var(--sg-type-subtitle-lh);
+  color: var(--sg-text-subtitle);
+}
+
+.sg-type-table-subtitle {
+  font-family: var(--sg-font-family);
+  font-size: var(--sg-type-table-subtitle-size);
+  font-weight: 400;
+  line-height: var(--sg-type-table-subtitle-lh);
+  color: var(--sg-text-subtitle);
+}
+
+.sg-type-caption {
+  font-family: var(--sg-font-family);
+  font-size: var(--sg-type-caption-size);
+  font-weight: 400;
+  line-height: var(--sg-type-caption-lh);
+  color: var(--sg-text-caption);
+}

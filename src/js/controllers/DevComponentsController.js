@@ -7,6 +7,9 @@ import { ResourceView } from "../view_models/components/ResourceView.js";
 import { DataTable } from "../view_models/components/DataTable.js";
 import { idle, loading, success, error, missing } from "../store/Resource.js";
 import { notify } from "../store/notify.js";
+import { bindDataTable, tableBindState } from "../util/bindDataTable.js";
+import { parseTableParams } from "../util/tableFilters.js";
+import { rangeFilterField, statusFilterField } from "../util/tableFilterSchemas.js";
 
 /**
  * /dev/components -- visual gallery of every reusable view-model component.
@@ -23,18 +26,61 @@ export class DevComponentsController extends AbstractController {
   }
 }
 
+const DEV_FILTER_SCHEMA = [
+  statusFilterField((r) => (r.guild_rank % 2 === 0 ? "online" : "offline")),
+  rangeFilterField("rank", "Rank", (r) => r.guild_rank),
+];
+
 class DevComponentsViewModel extends AbstractViewModel {
+  constructor() {
+    super();
+    /** @type {Record<string, unknown>} */
+    this.tableParams = {};
+    /** @type {Record<string, unknown>} */
+    this.filteredTableParams = { f: "status:online", "rank.min": 1 };
+  }
+
   render() {
-    const sampleRows = Array.from({ length: 7 }, (_, i) => ({ id: `0-${i + 1}`, name: `Player ${i + 1}`, guild_rank: i % 5 }));
+    const sampleRows = Array.from({ length: 7 }, (_, i) => ({
+      id: `0-${i + 1}`,
+      name: `Player ${i + 1}`,
+      guild_rank: i % 5,
+    }));
+
     const table = new DataTable({
       id: "dev-table",
-      searchScope: "Players",
+      filterSchema: DEV_FILTER_SCHEMA,
+      filters: { status: ["online"], rank: { min: 1 } },
+      searchColumns: [
+        { id: "id", label: "ID" },
+        { id: "name", label: "Name" },
+      ],
       columns: [
         { id: "id", label: "ID", get: (r) => r.id, sort: (a, b) => String(a.id).localeCompare(b.id) },
         { id: "name", label: "Name", get: (r) => r.name, sort: (a, b) => a.name.localeCompare(b.name) },
         { id: "rank", label: "Rank", get: (r) => r.guild_rank, align: "end" },
       ],
       rows: sampleRows,
+      ...parseTableParams(this.tableParams),
+    });
+
+    const filteredTable = new DataTable({
+      id: "dev-table-filtered",
+      filterSchema: DEV_FILTER_SCHEMA,
+      filters: { status: ["online"], rank: { min: 1, max: 3 } },
+      searchColumns: [
+        { id: "id", label: "ID" },
+        { id: "name", label: "Name" },
+      ],
+      columns: [
+        { id: "id", label: "ID", get: (r) => r.id, sort: (a, b) => String(a.id).localeCompare(b.id) },
+        { id: "name", label: "Name", get: (r) => r.name, sort: (a, b) => a.name.localeCompare(b.name) },
+        { id: "rank", label: "Rank", get: (r) => r.guild_rank, align: "end" },
+      ],
+      rows: sampleRows,
+      q: "player",
+      field: "name",
+      page: 1,
     });
 
     return `
@@ -59,8 +105,12 @@ class DevComponentsViewModel extends AbstractViewModel {
           </div>
         </div>
         <div class="col-md-12">
-          <h6 class="text-secondary text-uppercase small">DataTable</h6>
+          <h6 class="text-secondary text-uppercase small">DataTable (default)</h6>
           ${table.renderHTML()}
+        </div>
+        <div class="col-md-12">
+          <h6 class="text-secondary text-uppercase small">DataTable (active filters + search)</h6>
+          ${filteredTable.renderHTML()}
         </div>
         <div class="col-md-6">
           <h6 class="text-secondary text-uppercase small">Floating labels</h6>
@@ -91,5 +141,35 @@ class DevComponentsViewModel extends AbstractViewModel {
     this.container.querySelector('[data-action="toast-warning"]')?.addEventListener("click", () => notify.toast("Warning", "warning"));
     this.container.querySelector('[data-action="toast-danger"]')?.addEventListener("click", () => notify.toast("Danger", "danger"));
     this.container.querySelector('[data-action="banner"]')?.addEventListener("click", () => notify.banner("This is a banner.", "warning"));
+
+    const bindLocal = (selector, paramsKey) => {
+      const root = this.container?.querySelector(selector);
+      if (!root) return;
+      const params = paramsKey === "table" ? this.tableParams : this.filteredTableParams;
+      bindDataTable(
+        root,
+        {
+          id: selector.slice(1),
+          filterSchema: DEV_FILTER_SCHEMA,
+          filters: paramsKey === "table" ? {} : { status: ["online"], rank: { min: 1, max: 3 } },
+          ...tableBindState(params),
+        },
+        {
+          onChange: (next) => {
+            if (paramsKey === "table") {
+              this.tableParams = { ...this.tableParams, ...next };
+              if (!this.tableParams.q) delete this.tableParams.q;
+              if (!this.tableParams.sort) delete this.tableParams.sort;
+              if (!this.tableParams.field) delete this.tableParams.field;
+              if (this.tableParams.page === 1) delete this.tableParams.page;
+            }
+            this.update();
+          },
+        },
+      );
+    };
+
+    bindLocal("#dev-table", "table");
+    bindLocal("#dev-table-filtered", "filtered");
   }
 }

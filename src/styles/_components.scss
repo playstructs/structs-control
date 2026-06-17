@@ -75,12 +75,13 @@
   cursor: pointer;
 }
 
-// Status dot + label (Tables frame in Figma)
+// Status dot + label — Figma Status cell (Subtitle/Regular 13px, Text/body)
 .sg-status {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.8125rem;
+  font-size: var(--sg-type-subtitle-size);
+  line-height: var(--sg-type-subtitle-lh);
   color: var(--sg-text-body);
 }
 
@@ -89,18 +90,18 @@
   height: 6px;
   border-radius: 50%;
   flex: 0 0 6px;
-  background: var(--sg-text-tertiary);
+  background: var(--sg-text-caption);
 
   &.is-online {
-    background: #32862b;
+    background: var(--sg-border-success);
   }
 
   &.is-pending {
-    background: #eab308;
+    background: var(--sg-text-warning);
   }
 
   &.is-offline {
-    background: #ef4444;
+    background: var(--sg-border-error);
   }
 }
 
@@ -111,21 +112,22 @@
   gap: 6px;
   padding: 4px 10px;
   border-radius: var(--sg-radius-pill);
-  font-size: 0.75rem;
+  font-size: var(--sg-type-subtitle-size);
   font-weight: 500;
+  line-height: var(--sg-type-subtitle-lh);
   background: var(--sg-surface-muted);
   color: var(--sg-text-body);
   border: 1px solid var(--sg-border);
 
   &.is-success {
-    background: #e6f4ea;
-    border-color: #b7dfc0;
-    color: #1e5a28;
+    background: var(--sg-alert-success);
+    border-color: var(--sg-border-success);
+    color: var(--sg-text-success);
   }
 
   &.is-danger {
-    background: #fce8e6;
-    border-color: #f5c4bf;
-    color: #8b1a10;
+    background: var(--sg-alert-negative);
+    border-color: var(--sg-border-error);
+    color: var(--sg-text-error);
   }
 }

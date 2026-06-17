@@ -26,6 +26,7 @@ document.querySelector("#boot-screen .sg-boot-screen__logo img")?.setAttribute("
 import "bootstrap/js/dist/modal.js";
 import "bootstrap/js/dist/dropdown.js";
 import "bootstrap/js/dist/collapse.js";
+import "bootstrap/js/dist/offcanvas.js";
 import "bootstrap/js/dist/tooltip.js";
 
 import { Store } from "./store/Store.js";
@@ -143,19 +144,19 @@ function mountLayout() {
 
   // Lazy-loaded controllers: each becomes its own webpack chunk via dynamic import().
   router.registerLazyController("Overview", () =>
-    import("./controllers/OverviewController.js").then((m) => new m.OverviewController({ store, layout: newLayout, guildManager, substationManager })),
+    import("./controllers/OverviewController.js").then((m) => new m.OverviewController({ store, layout: newLayout, guildManager })),
   );
   router.registerLazyController("GuildDetails", () =>
     import("./controllers/GuildDetailsController.js").then((m) => new m.GuildDetailsController({ store, layout: newLayout, guildManager })),
   );
   router.registerLazyController("GuildRelationships", () =>
     import("./controllers/GuildRelationshipsController.js").then(
-      (m) => new m.GuildRelationshipsController({ store, layout: newLayout, providerManager, agreementManager }),
+      (m) => new m.GuildRelationshipsController({ store, layout: newLayout, router, providerManager, agreementManager }),
     ),
   );
   router.registerLazyController("MembershipApplications", () =>
     import("./controllers/MembershipApplicationsController.js").then(
-      (m) => new m.MembershipApplicationsController({ store, layout: newLayout, membershipManager: membershipApplicationManager }),
+      (m) => new m.MembershipApplicationsController({ store, layout: newLayout, router, membershipManager: membershipApplicationManager }),
     ),
   );
   router.registerLazyController("Players", () =>
@@ -187,6 +188,9 @@ function mountLayout() {
     import("./controllers/AllocationsController.js").then(
       (m) => new m.AllocationsController({ store, layout: newLayout, router, allocationManager, gridManager }),
     ),
+  );
+  router.registerLazyController("EnergySection", () =>
+    import("./controllers/EnergySectionController.js").then((m) => new m.EnergySectionController({ store, layout: newLayout })),
   );
   router.registerLazyController("Reactors", () =>
     import("./controllers/ReactorsController.js").then((m) => new m.ReactorsController({ store, layout: newLayout, router, reactorManager, gridManager })),

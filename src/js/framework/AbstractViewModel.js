@@ -27,7 +27,6 @@ export class AbstractViewModel {
     this.container = container;
     this._mounted = true;
     this.update();
-    this.bind();
   }
 
   /**

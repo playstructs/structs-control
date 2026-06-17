@@ -64,7 +64,11 @@ class ActivityViewModel extends AbstractViewModel {
     });
 
     return `
-      ${LayoutViewModel.pageHeader({ title: "Activity", subtitle: "Transactions submitted this session." })}
+      ${LayoutViewModel.pageHeader({
+        title: "Activity",
+        subtitle: "Transactions submitted this session.",
+        actionsHtml: `<a class="btn btn-light btn-sm" href="/overview" data-spa-link><i class="bi bi-chevron-left me-1"></i>Back to Overview</a>`,
+      })}
       ${table.renderHTML()}
     `;
   }
