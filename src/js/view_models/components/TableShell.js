@@ -11,7 +11,7 @@ export function tableShell(props) {
   return `
     <div class="sg-datatable${embedded}"${idAttr} data-component="TableShell">
       <div class="sg-datatable__scroll table-responsive">
-        <table class="table sg-datatable__table mb-0">${props.tableHtml}</table>
+        <table class="table table-hover sg-datatable__table mb-0">${props.tableHtml}</table>
       </div>
     </div>
   `;

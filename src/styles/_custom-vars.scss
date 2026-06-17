@@ -1,47 +1,110 @@
-// Non-Bootstrap design tokens exposed as CSS custom properties.
-// Use these in `.sg-*` rules; never inline hex values in components.
+// Non-Bootstrap design tokens — Factions Admin Design System
+// (fileKey ruigfX3qz9rGGALfbpdUXR). Resolved hex from Figma variable defs.
+// Use --sg-* in `.sg-*` rules; never inline hex in view models.
 
 :root {
-  --sg-surface: #ffffff;
-  --sg-surface-muted: #f6f7f9;
-  --sg-surface-active: #eaeefb;
+  // --- Surface (Figma Surface/*) ---
+  --sg-surface: #ffffff; // Surface/white
+  --sg-surface-subtle: #f9fafb; // Surface/subtle
+  --sg-surface-default: #edeff2; // Surface/default — icon wells, chips
+  --sg-surface-darker: #d9dbe3; // Surface/darker
+  --sg-surface-muted: #f6f7f9; // Text/negative — page canvas
+  --sg-surface-active: #eaeefb; // Surface/subtle-blue
   --sg-surface-hover: #f0f3fb;
-  --sg-surface-subtle: #f9fafb;
+  --sg-surface-disabled: #d9dbe3;
 
-  --sg-text-primary: #1a1c21;
-  --sg-text-title: #1f212a;
-  --sg-text-body: #3a4050;
-  --sg-text-secondary: #7a849f;
-  --sg-text-tertiary: #a0a6b5;
-  --sg-text-active: #3a4050;
-  --sg-text-on-primary: #f6f7f9;
-
-  --sg-border: #d9dbe3;
-  --sg-border-default: #b5baca;
-  --sg-border-strong: #58617a;
+  // --- Border (Figma Border/*) ---
+  --sg-border-lighter: #edeff2;
+  --sg-border: #d9dbe3; // Border/light
+  --sg-border-default: #b5baca; // Border/default
+  --sg-border-disabled: #c7cbd6;
+  --sg-border-strong: #58617a; // Border/darker
+  --sg-border-valid-blue: #8ca5e8;
+  --sg-border-error: #cc2d2d;
+  --sg-border-success: #32862b;
+  --sg-border-warning: #d17d02;
   --sg-divider: #eceef3;
 
-  --sg-text-disabled: #b5baca;
+  // --- Text (Figma Text/*) ---
+  --sg-text-title: #1f212a; // Grey/900
+  --sg-text-body: #3a4050; // Grey/800
+  --sg-text-subtitle: #7a849f; // Grey/600
+  --sg-text-caption: #a2a9bc; // Grey/500
+  --sg-text-disabled: #b5baca; // Grey/400
+  --sg-text-negative: #f6f7f9; // Grey/50
+  --sg-text-error: #cc2d2d;
+  --sg-text-success: #32862b;
+  --sg-text-warning: #d17d02;
+  --sg-text-on-primary: #f6f7f9;
 
-  --sg-btn-metal: #7a849f;
-  --sg-btn-success: #32862b;
+  // Legacy aliases (prefer --sg-text-subtitle / --sg-text-caption in new code)
+  --sg-text-primary: var(--sg-text-title);
+  --sg-text-secondary: var(--sg-text-subtitle);
+  --sg-text-tertiary: var(--sg-text-caption);
+  --sg-text-active: var(--sg-text-body);
 
+  // --- Icon (Figma Icon/*) ---
+  --sg-icon-darkest: #0f1015; // Grey/950
+  --sg-icon-darker: #7a849f; // Grey/600
+  --sg-icon-dark: #a2a9bc; // Grey/500
+  --sg-icon-light: #b5baca; // Grey/400
+  --sg-icon-lighter: #d9dbe3; // Grey/200
+  --sg-icon-size: 20px;
+
+  // Table icon well — Figma table-icon-heading (node 576:74736)
+  --sg-icon-well-border: var(--sg-surface-default);
+  --sg-icon-well-bg: var(--sg-surface-default);
+  --sg-icon-well-fg: var(--sg-icon-darker);
+
+  // --- Alert surfaces (Figma Alerts/*) ---
+  --sg-alert-default: #eef3fc;
+  --sg-alert-negative: #fce8e8;
+  --sg-alert-success: #e8f5e7;
+  --sg-alert-warning: #fef3e6;
+
+  // --- Buttons (Figma Button/*) ---
+  --sg-btn-metal: #7a849f; // Button/Metalic Grey
+  --sg-btn-success: #32862b; // Button/Success Green
+  --sg-btn-error: #cc2d2d; // Button/Error Red
+  --sg-btn-space-blue: #254dbc; // Button/Space Blue
+
+  // --- Typography scale (Figma type styles) ---
+  --sg-font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --sg-type-h1-size: 49px;
+  --sg-type-h1-lh: 58.8px;
+  --sg-type-headline-size: 20px;
+  --sg-type-headline-lh: 20px;
+  --sg-type-table-headline-size: 16px;
+  --sg-type-table-headline-lh: 1;
+  --sg-type-body-size: 16px;
+  --sg-type-body-lh: 1.5;
+  --sg-type-subtitle-size: 13px;
+  --sg-type-subtitle-lh: 1.5;
+  --sg-type-table-subtitle-size: 12px;
+  --sg-type-table-subtitle-lh: calc(20 / 12);
+  --sg-type-caption-size: 10px;
+  --sg-type-caption-lh: 1.5;
+
+  // --- Shell layout ---
   --sg-shell-header-h: 65px;
   --sg-shell-sidebar-collapsed-w: 72px;
   --sg-shell-sidebar-expanded-w: 256px;
   --sg-shell-pillnav-h: 48px;
   --sg-shell-gutter: 24px;
 
-  --sg-radius-xs: 4px;
+  // --- Radius (Figma Radius/*) ---
+  --sg-radius-xs: 4px; // Radius/XS
   --sg-radius-sm: 6px;
-  --sg-radius-md: 8px;
+  --sg-radius-md: 8px; // Radius/M
   --sg-radius-lg: 12px;
-  --sg-radius-pill: 999px;
+  --sg-radius-pill: 999px; // Radius/Full
 
+  // --- Elevation ---
   --sg-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
   --sg-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --sg-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
 
+  // --- Z-index ---
   --sg-z-sidebar: 100;
   --sg-z-header: 110;
   --sg-z-banner: 120;
@@ -49,6 +112,22 @@
   --sg-z-modal: 1055;
   --sg-z-boot: 9999;
 
+  // --- Motion ---
   --sg-transition-fast: 120ms ease;
   --sg-transition-base: 180ms ease;
+
+  // Figma header+subheader block (Flows 1122:38199)
+  --sg-table-chrome-padding: 24px;
+  --sg-table-header-inset-x: 30px;
+  --sg-table-header-height: 64px;
+  --sg-table-header-padding-y: 12px;
+  --sg-table-subheader-padding-y: 16px;
+  --sg-table-control-height: 36px;
+  --sg-table-filter-gap: 12px;
+  --sg-table-toolbar-gap: 24px;
+  --sg-table-search-gap: 8px;
+  --sg-v-padding: 8px;
+
+  // Figma Filters sidebar — ~32% viewport, capped at 560px (node 1122:30348)
+  --sg-filter-panel-width: clamp(300px, 32vw, 560px);
 }

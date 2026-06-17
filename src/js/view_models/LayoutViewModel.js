@@ -45,8 +45,10 @@ export class LayoutViewModel extends AbstractViewModel {
         <header class="sg-header" id="sg-header"></header>
         <aside class="sg-sidebar" id="sg-sidebar"></aside>
         <main class="sg-content">
-          <nav class="sg-pillnav" id="sg-pillnav"></nav>
-          <section class="sg-page" id="sg-page"></section>
+          <section class="sg-page" id="sg-page">
+            <nav class="sg-pillnav" id="sg-pillnav"></nav>
+            <div class="sg-page__body" id="sg-page-body"></div>
+          </section>
         </main>
       </div>
     `;
@@ -67,7 +69,7 @@ export class LayoutViewModel extends AbstractViewModel {
    * @param {AbstractViewModel} viewModel
    */
   mountContent(viewModel) {
-    const slot = document.getElementById("sg-page");
+    const slot = document.getElementById("sg-page-body");
     if (!slot) return;
     if (this.activePage) this.activePage.unmount();
     this.activePage = viewModel;

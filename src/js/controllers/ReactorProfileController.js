@@ -3,7 +3,10 @@ import { AbstractViewModel } from "../framework/AbstractViewModel.js";
 import { LayoutViewModel } from "../view_models/LayoutViewModel.js";
 import { ResourceView } from "../view_models/components/ResourceView.js";
 import { statCard } from "../view_models/components/StatCard.js";
-import { tableShell } from "../view_models/components/TableShell.js";
+import { DataTable } from "../view_models/components/DataTable.js";
+import { bindDataTable, gotoTableState, tableBindState } from "../util/bindDataTable.js";
+import { parseFiltersFromParams, parseTableParams } from "../util/tableFilters.js";
+import { gridAttributeRangeField, statusFilterField } from "../util/tableFilterSchemas.js";
 import { notify } from "../store/notify.js";
 import { statusBadge } from "../util/statusDisplay.js";
 import { readFormValues, validateForm, required, pattern } from "../util/validate.js";
@@ -36,10 +39,19 @@ export class ReactorProfileController extends AbstractController {
         router: this.router,
         id,
         reactorManager: this.reactorManager,
+        params: params ?? {},
       }),
     );
   }
 }
+
+const INFUSIONS_PREFIX = "i.";
+
+const INFUSIONS_FILTER_SCHEMA = [
+  gridAttributeRangeField("fuel", "Fuel", (i) => i.fuel),
+  gridAttributeRangeField("power", "Power", (i) => i.power),
+  statusFilterField((i) => (i.defusing ? "offline" : "online")),
+];
 
 class ReactorProfileViewModel extends AbstractViewModel {
   constructor(deps) {
@@ -48,6 +60,7 @@ class ReactorProfileViewModel extends AbstractViewModel {
     this.router = deps.router;
     this.id = deps.id;
     this.reactorManager = deps.reactorManager;
+    this.params = deps.params;
   }
 
   mount(container) {
@@ -125,25 +138,57 @@ class ReactorProfileViewModel extends AbstractViewModel {
         ${ResourceView.render(infusion, {
           success: (rows) => {
             const list = Array.isArray(rows) ? rows : rows ? [rows] : [];
-            if (!list.length) {
-              return `<div class="sg-empty"><div class="sg-empty__hint">No player infusions at this reactor.</div></div>`;
-            }
-            return tableShell({
+            const filters = parseFiltersFromParams(this.params, INFUSIONS_PREFIX, INFUSIONS_FILTER_SCHEMA);
+            const t = new DataTable({
+              id: "infusions-table",
+              paramPrefix: INFUSIONS_PREFIX,
+              filterSchema: INFUSIONS_FILTER_SCHEMA,
+              filters,
               embedded: true,
-              tableHtml: `<thead><tr><th>Player</th><th>Address</th><th>Fuel</th><th>Power</th><th>Commission</th><th>Defusing</th></tr></thead><tbody>${list
-                .map(
-                  (i) =>
-                    `<tr>
-                      <td>${renderEntityRef(i.player_id, lookup)}</td>
-                      <td class="sg-datatable__cell-mono">${escapeHtml(i.address ?? "—")}</td>
-                      <td>${escapeHtml(formatGridAttribute("fuel", i.fuel))}</td>
-                      <td>${escapeHtml(formatGridAttribute("power", i.power))}</td>
-                      <td>${escapeHtml(formatCommissionPercent(i.commission))}</td>
-                      <td>${statusBadge(i.defusing ? "Pending" : "Online")}</td>
-                    </tr>`,
-                )
-                .join("")}</tbody>`,
+              searchColumns: [
+                { id: "player", label: "Player" },
+                { id: "address", label: "Address" },
+              ],
+              columns: [
+                {
+                  id: "player",
+                  label: "Player",
+                  get: (i) => i.player_id ?? "—",
+                  render: (v) => renderEntityRef(v, lookup),
+                },
+                {
+                  id: "address",
+                  label: "Address",
+                  get: (i) => i.address ?? "—",
+                  render: (v) => `<span class="sg-datatable__cell-mono">${escapeHtml(v)}</span>`,
+                },
+                {
+                  id: "fuel",
+                  label: "Fuel",
+                  get: (i) => formatGridAttribute("fuel", i.fuel),
+                },
+                {
+                  id: "power",
+                  label: "Power",
+                  get: (i) => formatGridAttribute("power", i.power),
+                },
+                {
+                  id: "commission",
+                  label: "Commission",
+                  get: (i) => formatCommissionPercent(i.commission),
+                },
+                {
+                  id: "defusing",
+                  label: "Defusing",
+                  get: (i) => (i.defusing ? "Pending" : "Online"),
+                  render: (v) => statusBadge(String(v)),
+                },
+              ],
+              rows: list,
+              ...parseTableParams(this.params, INFUSIONS_PREFIX),
+              emptyMessage: "No player infusions at this reactor.",
             });
+            return t.renderHTML();
           },
         })}
       </div>
@@ -206,6 +251,29 @@ class ReactorProfileViewModel extends AbstractViewModel {
       });
       notify.toast("Defuse enqueued", "info");
     });
+
+    const { id: _routeId, ...tableParams } = this.params;
+    bindDataTable(
+      this.container.querySelector("#infusions-table"),
+      {
+        id: "infusions-table",
+        paramPrefix: INFUSIONS_PREFIX,
+        filterSchema: INFUSIONS_FILTER_SCHEMA,
+        filters: parseFiltersFromParams(this.params, INFUSIONS_PREFIX, INFUSIONS_FILTER_SCHEMA),
+        ...tableBindState(this.params, INFUSIONS_PREFIX),
+      },
+      {
+        onChange: (next) =>
+          gotoTableState(
+            this.router,
+            `/energy/reactors/${this.id}`,
+            tableParams,
+            next,
+            INFUSIONS_FILTER_SCHEMA,
+            INFUSIONS_PREFIX,
+          ),
+      },
+    );
   }
 }
 

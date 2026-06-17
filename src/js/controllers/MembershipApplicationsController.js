@@ -6,26 +6,44 @@ import { DataTable } from "../view_models/components/DataTable.js";
 import { notify } from "../store/notify.js";
 import { keys } from "../store/keys.js";
 import { statusBadge } from "../util/statusDisplay.js";
-import { bindDataTable } from "../util/bindDataTable.js";
+import { bindDataTable, gotoTableState, tableBindState } from "../util/bindDataTable.js";
+import { parseFiltersFromParams, parseTableParams } from "../util/tableFilters.js";
+import { checkboxFilterField } from "../util/tableFilterSchemas.js";
 import { buildEntityLookup } from "../util/entityLookup.js";
 import { renderEntityRef } from "../util/entityLink.js";
+
+const APPLICATIONS_FILTER_SCHEMA = [
+  checkboxFilterField(
+    "status",
+    "Status",
+    [
+      { value: "pending", label: "Pending" },
+      { value: "approved", label: "Approved" },
+      { value: "denied", label: "Denied" },
+    ],
+    (a) => String(a.status ?? a.registration_status ?? a.registrationStatus ?? "").toLowerCase(),
+  ),
+];
 
 export class MembershipApplicationsController extends AbstractController {
   constructor(deps) {
     super("MembershipApplications", deps.store);
     this.layout = deps.layout;
+    this.router = deps.router;
     this.membershipManager = deps.membershipManager;
   }
 
-  activate() {
+  activate(_page, params) {
     const session = this.store.session?.data;
     if (!session) return;
     void this.membershipManager.fetchByGuild(session.guildId);
     this.layout.mountContent(
       new MembershipApplicationsViewModel({
         store: this.store,
+        router: this.router,
         guildId: session.guildId,
         membershipManager: this.membershipManager,
+        params: params ?? {},
       }),
     );
   }
@@ -35,10 +53,10 @@ class MembershipApplicationsViewModel extends AbstractViewModel {
   constructor(deps) {
     super();
     this.store = deps.store;
+    this.router = deps.router;
     this.guildId = deps.guildId;
     this.membershipManager = deps.membershipManager;
-    /** @type {{ q?: string, sort?: string, page?: number }} */
-    this.tableParams = {};
+    this.params = deps.params;
   }
 
   mount(container) {
@@ -49,6 +67,8 @@ class MembershipApplicationsViewModel extends AbstractViewModel {
   render() {
     const apps = this.store.read(keys.membershipApplications(this.guildId));
     const lookup = buildEntityLookup(this.store);
+    const filters = parseFiltersFromParams(this.params, "", APPLICATIONS_FILTER_SCHEMA);
+
     return `
       ${LayoutViewModel.pageHeader({ title: "Applications", subtitle: "Pending membership requests and invites." })}
       ${ResourceView.render(apps, {
@@ -58,7 +78,13 @@ class MembershipApplicationsViewModel extends AbstractViewModel {
           );
           const table = new DataTable({
             id: "applications-table",
-            searchScope: "Applications",
+            filterSchema: APPLICATIONS_FILTER_SCHEMA,
+            filters,
+            searchColumns: [
+              { id: "player", label: "Player" },
+              { id: "type", label: "Type" },
+              { id: "substation", label: "Substation" },
+            ],
             columns: [
               {
                 id: "player",
@@ -97,9 +123,7 @@ class MembershipApplicationsViewModel extends AbstractViewModel {
             keyFn: (a) => String(a.player_id ?? a.playerId ?? ""),
             emptyMessage: "No pending applications.",
             pageSize: 25,
-            q: this.tableParams.q,
-            sort: this.tableParams.sort,
-            page: Number(this.tableParams.page) || 1,
+            ...parseTableParams(this.params),
           });
           return table.renderHTML();
         },
@@ -111,6 +135,7 @@ class MembershipApplicationsViewModel extends AbstractViewModel {
     if (!this.container) return;
     const root = this.container.querySelector("#applications-table");
     if (!root) return;
+    const params = this.params;
 
     root.querySelectorAll('[data-action="approve"], [data-action="deny"]').forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -131,15 +156,19 @@ class MembershipApplicationsViewModel extends AbstractViewModel {
       });
     });
 
-    bindDataTable(root, this.tableParams, {
-      onChange: (next) => {
-        this.tableParams = { ...this.tableParams, ...next };
-        if (!this.tableParams.q) delete this.tableParams.q;
-        if (!this.tableParams.sort) delete this.tableParams.sort;
-        if (this.tableParams.page === 1) delete this.tableParams.page;
-        this.update();
+    bindDataTable(
+      root,
+      {
+        id: "applications-table",
+        filterSchema: APPLICATIONS_FILTER_SCHEMA,
+        filters: parseFiltersFromParams(params, "", APPLICATIONS_FILTER_SCHEMA),
+        ...tableBindState(params),
       },
-    });
+      {
+        onChange: (next) =>
+          gotoTableState(this.router, "/guild/applications", params, next, APPLICATIONS_FILTER_SCHEMA),
+      },
+    );
   }
 }
 

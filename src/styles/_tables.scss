@@ -1,4 +1,97 @@
-// Tables — Figma Tables frame (571:21113)
+// Tables — Figma Tables frame (571:21113) + header+subheader (Flows 1122:38199)
+
+// Section card — icon heading + subheader + table grid (Flows header+subheader)
+.sg-table-section {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "header"
+    "subheader"
+    "scroll"
+    "footer";
+  padding: var(--sg-table-chrome-padding) var(--sg-table-chrome-padding) 0;
+  background: var(--sg-surface);
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-md);
+  overflow: hidden;
+}
+
+.sg-table-section__content {
+  display: contents;
+}
+
+.sg-table-section__header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: var(--sg-table-header-height);
+  padding: var(--sg-table-header-padding-y) calc(var(--sg-table-header-inset-x) - var(--sg-table-chrome-padding));
+  box-sizing: border-box;
+}
+
+.sg-table-section__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 3px;
+  border: 1px solid var(--sg-icon-well-border);
+  border-radius: var(--sg-radius-md);
+  background: var(--sg-surface);
+}
+
+.sg-table-section__icon-inner {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-icon-well-bg);
+  color: var(--sg-icon-well-fg);
+  font-size: var(--sg-icon-size);
+  line-height: 1;
+}
+
+.sg-table-section__meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sg-table-section__title {
+  margin: 0;
+}
+
+.sg-table-section__subtitle {
+  margin: 0;
+}
+
+.sg-table-section__content .sg-datatable--embedded {
+  display: contents;
+  border-radius: 0;
+}
+
+.sg-table-section .sg-datatable--embedded .sg-datatable__subheader {
+  grid-area: subheader;
+  padding: var(--sg-table-subheader-padding-y) calc(var(--sg-table-header-inset-x) - var(--sg-table-chrome-padding));
+}
+
+.sg-table-section .sg-datatable--embedded .sg-datatable__scroll {
+  grid-area: scroll;
+  margin-inline: calc(-1 * var(--sg-table-chrome-padding));
+  border-top: 1px solid var(--sg-border);
+}
+
+.sg-table-section .sg-datatable--embedded .sg-datatable__footer {
+  grid-area: footer;
+  margin-inline: calc(-1 * var(--sg-table-chrome-padding));
+  padding-inline: var(--sg-table-chrome-padding);
+  padding-bottom: var(--sg-table-chrome-padding);
+}
 
 .sg-datatable {
   background: var(--sg-surface);
@@ -13,18 +106,14 @@
   background: transparent;
 }
 
-.sg-datatable--embedded .sg-datatable__scroll {
-  border-top: 1px solid var(--sg-divider);
-}
-
-// Subheader — TableSubheader (571:18284): px 30 py 16
+// Subheader — Figma table-subheader (1122:38208): px 30 py 16
 .sg-datatable__subheader {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20px 24px;
-  padding: 16px 30px;
+  gap: 20px var(--sg-table-toolbar-gap);
+  padding: var(--sg-table-subheader-padding-y) var(--sg-table-header-inset-x);
 }
 
 .sg-datatable__subheader-left {
@@ -39,7 +128,7 @@
 .sg-datatable__filter-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--sg-table-filter-gap);
   flex-shrink: 0;
 }
 
@@ -48,7 +137,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 24px;
+  gap: var(--sg-table-toolbar-gap);
   flex: 1 1 360px;
 }
 
@@ -56,18 +145,19 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px;
+  min-height: var(--sg-table-control-height);
+  padding: var(--sg-v-padding);
   border: 1px solid var(--sg-border-default);
   border-radius: var(--sg-radius-xs);
   background: var(--sg-surface);
   color: var(--sg-text-body);
-  font-size: 0.8125rem;
+  font-size: var(--sg-type-subtitle-size);
   font-weight: 600;
-  line-height: 1.5;
+  line-height: var(--sg-type-subtitle-lh);
   white-space: nowrap;
 
   i {
-    font-size: 1.25rem;
+    font-size: var(--sg-icon-size);
     line-height: 1;
   }
 
@@ -79,14 +169,15 @@
 .sg-datatable__clear-btn {
   display: inline-flex;
   align-items: center;
-  padding: 8px;
+  min-height: var(--sg-table-control-height);
+  padding: var(--sg-v-padding);
   border: 1px solid var(--sg-border);
   border-radius: var(--sg-radius-xs);
   background: var(--sg-surface);
   color: var(--sg-text-disabled);
-  font-size: 0.8125rem;
+  font-size: var(--sg-type-subtitle-size);
   font-weight: 600;
-  line-height: 1.5;
+  line-height: var(--sg-type-subtitle-lh);
   white-space: nowrap;
 }
 
@@ -193,7 +284,32 @@
 .sg-datatable__search {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sg-table-search-gap);
+}
+
+.sg-datatable__scope-dropdown .dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--sg-table-control-height);
+  padding: var(--sg-v-padding);
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-surface);
+  color: var(--sg-text-disabled);
+  font-size: var(--sg-type-subtitle-size);
+  font-weight: 600;
+  line-height: var(--sg-type-subtitle-lh);
+  white-space: nowrap;
+
+  &::after {
+    display: none;
+  }
+
+  i {
+    font-size: 1rem;
+    color: var(--sg-text-disabled);
+  }
 }
 
 .sg-datatable__scope {
@@ -218,24 +334,27 @@
 
 .sg-datatable__search-input {
   width: 160px;
-  min-height: 36px;
-  border-color: var(--sg-border);
+  min-height: var(--sg-table-control-height);
+  padding: 6px 12px;
+  border-color: var(--sg-surface-darker);
+  font-size: var(--sg-type-subtitle-size);
+  line-height: var(--sg-type-subtitle-lh);
 }
 
-// Figma search submit — Button/Metalic Grey (#7a849f), text only
+// Figma search submit — Button/Metalic Grey (#7a849f)
 .sg-datatable__search-submit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px;
-  padding: 8px;
+  min-height: var(--sg-table-control-height);
+  padding: var(--sg-v-padding);
   border: 0;
   border-radius: var(--sg-radius-xs);
   background: var(--sg-btn-metal);
   color: var(--sg-text-on-primary);
-  font-size: 0.8125rem;
+  font-size: var(--sg-type-subtitle-size);
   font-weight: 600;
-  line-height: 1.5;
+  line-height: var(--sg-type-subtitle-lh);
   white-space: nowrap;
 
   &:hover {
@@ -250,6 +369,12 @@
 .sg-datatable__table {
   width: 100%;
   margin: 0;
+  // Bootstrap paints row fills via inset box-shadow — drive hover/selection through these vars.
+  --bs-table-bg: var(--sg-surface);
+  --bs-table-accent-bg: var(--sg-surface);
+  --bs-table-hover-bg: var(--sg-surface-hover);
+  --bs-table-active-bg: var(--sg-surface-active);
+  --bs-table-striped-bg: var(--sg-surface);
 }
 
 .sg-datatable__table > :not(caption) > * > * {
@@ -266,7 +391,8 @@
   font-weight: 600;
   line-height: 1.5;
   color: var(--sg-text-body);
-  background: var(--sg-surface);
+  --bs-table-bg-type: var(--sg-surface);
+  --bs-table-bg-state: var(--sg-surface);
   border-bottom: 1px solid var(--sg-border);
   white-space: nowrap;
 }
@@ -275,8 +401,13 @@
   height: 64px;
 }
 
+.sg-datatable__table > tbody > tr > * {
+  --bs-table-bg-type: var(--sg-surface);
+  --bs-table-bg-state: var(--sg-surface);
+}
+
 .sg-datatable__table > tbody > tr:hover > * {
-  background: var(--sg-surface-hover);
+  --bs-table-bg-state: var(--sg-surface-hover);
 }
 
 .sg-datatable__table > tbody > tr.sg-row-link {
@@ -284,7 +415,7 @@
 }
 
 .sg-datatable__table > tbody > tr.is-selected > * {
-  background: var(--sg-surface-active);
+  --bs-table-bg-state: var(--sg-surface-active);
 }
 
 .sg-datatable__check-col {
@@ -338,21 +469,84 @@
 
 .sg-datatable__empty-row td {
   height: auto;
-  padding: 32px 24px !important;
+  padding: 40px 24px !important;
   text-align: center;
   color: var(--sg-text-secondary);
   font-size: 0.8125rem;
   border-bottom: 0;
 }
 
-// Footer — Figma Footer (571:18263): px 16 py 20
+.sg-datatable__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.sg-datatable__empty-art {
+  width: 120px;
+  margin-bottom: 8px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.sg-empty-struct-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  animation: sg-empty-struct-bob 1.2s steps(2, end) infinite;
+}
+
+.sg-empty-struct-svg__pixel--antenna {
+  animation: sg-empty-antenna-blink 1s steps(2, end) infinite;
+}
+
+@keyframes sg-empty-struct-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes sg-empty-antenna-blink {
+  0%,
+  75% {
+    fill: #ffd95a;
+  }
+  76%,
+  100% {
+    fill: #ffef9a;
+  }
+}
+
+.sg-datatable__empty-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--sg-text-primary);
+}
+
+.sg-datatable__empty-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--sg-text-secondary);
+  line-height: 1.4;
+}
+
+// Footer — Figma Footer (571:18263)
 .sg-datatable__footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px 24px;
-  padding: 20px 16px;
+  padding: 20px 24px;
 }
 
 .sg-datatable__results {
@@ -411,4 +605,236 @@
 .sg-datatable__page-btn:disabled {
   color: var(--sg-text-disabled);
   cursor: default;
+}
+
+.sg-datatable__scope-dropdown .dropdown-item {
+  font-size: 0.8125rem;
+}
+
+.sg-datatable__scope-dropdown .dropdown-item.active {
+  background: var(--sg-surface-active);
+  color: var(--sg-text-title);
+}
+
+// Filter panel — Figma Filters sidebar (node 1122:30348)
+// ~32vw on typical admin viewports; portaled to <body> in bindDataTable.js.
+.sg-filter-panel.offcanvas.offcanvas-end {
+  --bs-offcanvas-width: var(--sg-filter-panel-width);
+  --bs-offcanvas-padding-x: 0;
+  --bs-offcanvas-padding-y: 0;
+  --bs-offcanvas-border-width: 0;
+  --bs-offcanvas-border-color: transparent;
+  --bs-offcanvas-box-shadow: var(--sg-shadow-lg);
+  --bs-offcanvas-bg: var(--sg-surface-subtle);
+
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  z-index: var(--bs-offcanvas-zindex, 1045);
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  width: var(--sg-filter-panel-width) !important;
+  max-width: min(var(--sg-filter-panel-width), 100vw) !important;
+  height: 100%;
+  max-height: 100%;
+  border: 0;
+  border-left: 0;
+  border-right: 0;
+  background: var(--sg-surface-subtle);
+  padding: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transform: translateX(100%);
+  transition: transform var(--bs-offcanvas-transition, transform 0.3s ease-in-out);
+
+  &.showing,
+  &.show:not(.hiding) {
+    visibility: visible;
+    transform: none;
+  }
+
+  &.showing,
+  &.hiding,
+  &.show {
+    visibility: visible;
+  }
+}
+
+.sg-filter-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 24px 32px;
+  min-height: 80px;
+  background: var(--sg-border-strong);
+  border: 0;
+  border-bottom: 0.5px solid var(--sg-border);
+}
+
+.sg-filter-panel__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--sg-text-on-primary);
+}
+
+.sg-filter-panel__close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border: 1px solid var(--sg-text-on-primary);
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-border-strong);
+  color: var(--sg-text-on-primary);
+  line-height: 1;
+}
+
+.sg-filter-panel__content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 32px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.sg-filter-panel__section {
+  background: var(--sg-surface);
+  border: 1px solid var(--sg-border-default);
+  border-radius: var(--sg-radius-xs);
+  overflow: hidden;
+}
+
+.sg-filter-panel__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px;
+  border: 0;
+  background: var(--sg-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sg-filter-panel__section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--sg-text-title);
+}
+
+.sg-filter-panel__section-icon {
+  font-size: 1rem;
+  color: var(--sg-border-strong);
+}
+
+.sg-filter-panel__section-body {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--sg-border-default);
+  padding-top: 12px;
+}
+
+.sg-filter-panel__checkbox-grid {
+  display: flex;
+  gap: 12px;
+}
+
+.sg-filter-panel__checkbox-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sg-filter-panel__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  margin: 0;
+  font-size: 1rem;
+  color: var(--sg-text-title);
+  cursor: pointer;
+
+  .form-check-input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    border-radius: var(--sg-radius-xs);
+    border-color: var(--sg-border);
+  }
+}
+
+.sg-filter-panel__range-row {
+  display: flex;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.sg-filter-panel__range-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sg-filter-panel__range-label {
+  font-size: 1rem;
+  color: var(--sg-text-body);
+}
+
+.sg-filter-panel__range-input {
+  width: 62px;
+  min-height: 24px;
+  padding: 2px 10px;
+  font-size: 1rem;
+  border-color: var(--sg-border);
+}
+
+.sg-filter-panel__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 8px;
+  padding: 29px 32px;
+  border-top: 1px solid #e5e7eb;
+  background: var(--sg-surface);
+}
+
+.sg-filter-panel__clear-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 125px;
+  padding: 8px;
+  border: 1px solid #677189;
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-surface);
+  color: var(--sg-text-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.sg-filter-panel__footer .sg-btn-success-fill {
+  min-width: 125px;
+  justify-content: center;
+}
+
+// Dim main content while filter drawer is open (Figma overlay)
+.offcanvas-backdrop.show {
+  opacity: 0.42;
 }

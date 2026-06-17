@@ -91,16 +91,31 @@ Common tasks, recipes-first. Use the scaffolding scripts (`npm run new:*`) for t
 ## Working with the DataTable
 
 ```js
+import { bindDataTable, gotoTableState } from "../util/bindDataTable.js";
+import { parseFiltersFromParams } from "../util/tableFilters.js";
+import { rangeFilterField } from "../util/tableFilterSchemas.js";
+
+const FILTER_SCHEMA = [rangeFilterField("rank", "Rank", (r) => r.guild_rank ?? 0)];
+const filters = parseFiltersFromParams(params, "", FILTER_SCHEMA);
+
 const table = new DataTable({
   id: "thing-table",
+  filterSchema: FILTER_SCHEMA,
+  filters,
+  searchColumns: [
+    { id: "id", label: "ID" },
+    { id: "name", label: "Name" },
+  ],
   columns: [
     { id: "id", label: "ID", get: (r) => r.id, sort: (a, b) => a.id.localeCompare(b.id) },
     { id: "name", label: "Name", get: (r) => r.name ?? "—" },
+    { id: "rank", label: "Rank", get: (r) => r.guild_rank ?? 0, align: "end" },
   ],
   rows: list,
   onRowClick: (r) => `/things/${r.id}`,
   sort: params.sort,
   q: params.q,
+  field: params.field,
   page: Number(params.page) || 1,
 });
 
@@ -109,10 +124,34 @@ container.innerHTML = table.renderHTML();
 
 // bind (URL-sync)
 const root = container.querySelector("#thing-table");
-// (see PlayersController.js for the bindDataTable helper)
+bindDataTable(
+  root,
+  { id: "thing-table", filterSchema: FILTER_SCHEMA, filters, page: Number(params.page) || 1 },
+  {
+    onChange: (next) => gotoTableState(router, "/things", params, next, FILTER_SCHEMA),
+    onNavigate: (path) => router.goto(path),
+  },
+);
 ```
 
-URL params (`?sort=name:asc&q=alice&page=2`) round-trip via the router: clicking a header rewrites the URL, the router re-activates the controller with the new params, the view model re-renders with the updated DataTable props.
+URL params round-trip via the router:
+
+| Param | Purpose |
+| --- | --- |
+| `sort` | `field:asc` or `field:desc` |
+| `q` | Search text (applied on Search button / Enter) |
+| `field` | Column id for scoped search |
+| `f` | Checkbox filters: `group:val1,val2;group2:val3` |
+| `{id}.min` / `{id}.max` | Range filter bounds |
+| `page` | 1-based page number |
+
+Dual tables on one page use a prefix (`y.q`, `n.f`, etc.) — see `ReactorsController.js`.
+
+**Filter panel:** define `filterSchema` with `rangeFilterField`, `milliwattRangeField`, `checkboxFilterField`, or `statusFilterField` from `util/tableFilterSchemas.js`. The 560px offcanvas opens from the Filter button; changes are draft until Apply. Toolbar tags come from `filtersToTags`; Clear All drops `q`, `field`, `f`, and all `*.min`/`*.max` keys.
+
+**Energy units:** chain values are **milliwatts** (1 W = 1,000 mW). Use `milliwattRangeField` for capacity/load/power filters — comparisons use raw milliwatts from the grid index, URL params store milliwatts, panel inputs default to **watts** (or accept `mW`/`W`/`KW` suffixes), and toolbar tags use the same display scaling as table cells (`unitDisplayFormat`).
+
+Processing order: advanced filters → column-scoped search → sort → paginate.
 
 ## Forms + validation
 

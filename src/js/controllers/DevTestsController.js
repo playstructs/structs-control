@@ -9,6 +9,8 @@ import { gridIndexTests } from "../../../tests/grid-index.test.js";
 import { unitDisplayTests } from "../../../tests/unit-display.test.js";
 import { entityLinkTests } from "../../../tests/entity-link.test.js";
 import { percentDisplayTests } from "../../../tests/percent-display.test.js";
+import { tableFiltersTests } from "../../../tests/table-filters.test.js";
+import { filterUnitsTests } from "../../../tests/filter-units.test.js";
 
 /**
  * /dev/tests -- runs the in-browser test suite and renders results.
@@ -49,6 +51,8 @@ class DevTestsViewModel extends AbstractViewModel {
     unitDisplayTests(t);
     entityLinkTests(t);
     percentDisplayTests(t);
+    tableFiltersTests(t);
+    filterUnitsTests(t);
     this.results = await t.run();
     this.running = false;
     this.update();

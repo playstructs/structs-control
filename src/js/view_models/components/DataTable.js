@@ -1,10 +1,12 @@
 import { AbstractViewModelComponent } from "../../framework/AbstractViewModelComponent.js";
 import { bindDataTable } from "../../util/bindDataTable.js";
+import { applyFilters, filtersToTags } from "../../util/tableFilters.js";
+import { FilterPanel } from "./FilterPanel.js";
+import { TableEmptyState } from "./TableEmptyState.js";
 
 /**
  * Declarative table with client-side sort + filter + paging, all URL-synced via
- * `?sort=field:asc`, `?q=search`, `?page=2`. Layout matches the Figma Tables
- * frame: filter toolbar, scope + search cluster, 64px rows, footer pagination.
+ * `?sort=field:asc`, `?q=search`, `?field=col`, `?f=status:online`, `?page=2`.
  *
  * Columns:
  *   { id, label, get(row), sort?, filter?, align?, render?(value, row) }
@@ -21,18 +23,26 @@ export class DataTable extends AbstractViewModelComponent {
    *     filter?: (row: any, q: string) => boolean,
    *     align?: "start" | "center" | "end",
    *     render?: (value: any, row: any) => string,
+   *     searchable?: boolean,
    *   }>,
    *   rows: any[],
    *   keyFn?: (row: any) => string,
    *   onRowClick?: (row: any) => string,
    *   selectable?: boolean,
-   *   sort?: string,
-   *   q?: string,
+ *   sort?: string,
+ *   q?: string,
+ *   field?: string, // URL-synced search scope (`?field=col`); preferred over searchField
    *   page?: number,
    *   pageSize?: number,
    *   emptyMessage?: string,
+   *   emptyHint?: string,
+   *   showEmptyIllustration?: boolean,
    *   searchScope?: string,
-   *   filterTags?: Array<{ id: string, label: string }>,
+   *   searchField?: string,
+   *   searchColumns?: Array<{ id: string, label: string }>,
+   *   filterSchema?: import("../../util/tableFilters.js").FilterField[],
+   *   filters?: import("../../util/tableFilters.js").FilterState,
+   *   paramPrefix?: string,
    *   toolbarActionsHtml?: string,
    *   showFilterButton?: boolean,
    *   hideToolbar?: boolean,
@@ -53,11 +63,16 @@ export class DataTable extends AbstractViewModelComponent {
       rows,
       sort,
       q,
+      field,
       page,
       pageSize = 25,
       emptyMessage = "No results.",
-      searchScope,
-      filterTags = [],
+      emptyHint,
+      showEmptyIllustration = true,
+      searchField,
+      searchColumns,
+      filterSchema,
+      filters = {},
       toolbarActionsHtml = "",
       showFilterButton = true,
       hideToolbar = false,
@@ -67,15 +82,34 @@ export class DataTable extends AbstractViewModelComponent {
       selectable = false,
     } = this.props;
 
+    const searchCols =
+      searchColumns ??
+      columns
+        .filter((c) => c.searchable !== false && c.id !== "actions")
+        .map((c) => ({ id: c.id, label: c.label }));
+
+    const activeField = searchField ?? field ?? searchCols[0]?.id ?? "";
+    const activeFieldLabel = searchCols.find((c) => c.id === activeField)?.label ?? "Search";
+
+    const filterTags = filtersToTags(filters, filterSchema);
+    const hasFilterSchema = Boolean(filterSchema?.length);
+
     const [sortField, sortDir] = (sort ?? "").split(":");
     const dir = sortDir === "desc" ? -1 : 1;
 
-    let processed = rows.slice();
+    let processed = applyFilters(rows.slice(), filters, filterSchema);
+
     const query = (q ?? "").trim().toLowerCase();
-    if (query) {
-      processed = processed.filter((row) =>
-        columns.some((c) => (c.filter ? c.filter(row, query) : String(c.get(row) ?? "").toLowerCase().includes(query))),
-      );
+    if (query && activeField) {
+      const searchCol = columns.find((c) => c.id === activeField);
+      if (searchCol) {
+        processed = processed.filter((row) => {
+          if (searchCol.filter) return searchCol.filter(row, query);
+          return String(searchCol.get(row) ?? "")
+            .toLowerCase()
+            .includes(query);
+        });
+      }
     }
 
     const col = sortField ? columns.find((c) => c.id === sortField) : null;
@@ -138,7 +172,13 @@ export class DataTable extends AbstractViewModelComponent {
             return `<tr data-key="${escapeHtml(rowKey)}" ${path ? `data-href="${escapeHtml(path)}"` : ""} class="${path ? "sg-row-link" : ""}">${checkCell}${cells}</tr>`;
           })
           .join("")
-      : `<tr class="sg-datatable__empty-row"><td colspan="${columns.length + (selectable ? 1 : 0)}">${escapeHtml(emptyMessage)}</td></tr>`;
+      : `<tr class="sg-datatable__empty-row"><td colspan="${columns.length + (selectable ? 1 : 0)}">${TableEmptyState.renderHTML({
+          title: emptyMessage,
+          hint:
+            emptyHint ??
+            (hasActiveFilters ? "Try adjusting your search or filters." : undefined),
+          showIllustration: showEmptyIllustration,
+        })}</td></tr>`;
 
     const tagHtml = filterTags
       .map(
@@ -147,14 +187,38 @@ export class DataTable extends AbstractViewModelComponent {
       )
       .join("");
 
+    const scopeDropdown =
+      searchCols.length > 0
+        ? `
+            <div class="dropdown sg-datatable__scope-dropdown">
+              <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-role="scope-toggle">
+                ${escapeHtml(activeFieldLabel)} <i class="bi bi-caret-down-fill"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                ${searchCols
+                  .map(
+                    (c) =>
+                      `<li><button type="button" class="dropdown-item${c.id === activeField ? " active" : ""}" data-role="scope-option" data-field="${escapeAttr(c.id)}">${escapeHtml(c.label)}</button></li>`,
+                  )
+                  .join("")}
+              </ul>
+            </div>`
+        : "";
+
+    const filterPanelId = `${id}-filter-panel`;
+    const filterPanelHtml =
+      hasFilterSchema && filterSchema
+        ? new FilterPanel({ id: filterPanelId, schema: filterSchema, filters }).renderHTML()
+        : "";
+
     const toolbar = hideToolbar
       ? ""
       : `
       <div class="sg-datatable__subheader">
         <div class="sg-datatable__subheader-left">
           <div class="sg-datatable__filter-controls">
-            ${showFilterButton ? `<button type="button" class="sg-datatable__filter-btn" data-role="filter" title="Advanced filters coming soon"><i class="bi bi-filter-right"></i> Filter</button>` : ""}
-            ${showFilterButton ? `<button type="button" class="sg-datatable__clear-btn" data-role="clear-filters" ${hasActiveFilters ? "" : "disabled"}>Clear All</button>` : ""}
+            ${showFilterButton && hasFilterSchema ? `<button type="button" class="sg-datatable__filter-btn" data-role="filter" data-bs-toggle="offcanvas" data-bs-target="#${escapeAttr(filterPanelId)}" aria-controls="${escapeAttr(filterPanelId)}"><i class="bi bi-filter-right"></i> Filter</button>` : ""}
+            ${showFilterButton && hasFilterSchema ? `<button type="button" class="sg-datatable__clear-btn" data-role="clear-filters" ${hasActiveFilters ? "" : "disabled"}>Clear All</button>` : ""}
           </div>
           ${tagHtml ? `<div class="sg-datatable__tags">${tagHtml}</div>` : ""}
         </div>
@@ -165,7 +229,7 @@ export class DataTable extends AbstractViewModelComponent {
               ? ""
               : `
             <div class="sg-datatable__search">
-              ${searchScope ? `<span class="sg-datatable__scope">${escapeHtml(searchScope)} <i class="bi bi-caret-down-fill"></i></span>` : ""}
+              ${scopeDropdown}
               <input type="search" class="form-control form-control-sm sg-datatable__search-input" placeholder="Search" value="${escapeHtml(q ?? "")}" data-role="search" aria-label="Search table" />
               <button type="button" class="sg-datatable__search-submit" data-role="search-submit">Search</button>
             </div>
@@ -203,15 +267,17 @@ export class DataTable extends AbstractViewModelComponent {
         </div>
         ${footer}
       </div>
+      ${filterPanelHtml}
     `;
   }
 
   /**
    * @param {HTMLElement} root
    * @param {{
-   *   onChange: (next: { sort?: string, q?: string, page?: number }) => void,
+   *   onChange: (next: Record<string, unknown>) => void,
    *   onNavigate?: (path: string) => void,
    *   onRemoveFilter?: (tagId: string) => void,
+   *   onApplyFilters?: (filters: import("../../util/tableFilters.js").FilterState) => void,
    * } | undefined} [handlers]
    */
   // @ts-ignore -- intentional 2-arg override of AbstractViewModelComponent.bind
