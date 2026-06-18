@@ -13,7 +13,7 @@
   background: var(--sg-surface);
   border: 1px solid var(--sg-border);
   border-radius: var(--sg-radius-md);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .sg-table-section__content {
@@ -78,12 +78,15 @@
 .sg-table-section .sg-datatable--embedded .sg-datatable__subheader {
   grid-area: subheader;
   padding: var(--sg-table-subheader-padding-y) calc(var(--sg-table-header-inset-x) - var(--sg-table-chrome-padding));
+  overflow: visible;
+  position: relative;
+  z-index: 2;
 }
 
 .sg-table-section .sg-datatable--embedded .sg-datatable__scroll {
   grid-area: scroll;
   margin-inline: calc(-1 * var(--sg-table-chrome-padding));
-  border-top: 1px solid var(--sg-border);
+  border-top: 0;
 }
 
 .sg-table-section .sg-datatable--embedded .sg-datatable__footer {
@@ -97,7 +100,7 @@
   background: var(--sg-surface);
   border: 1px solid var(--sg-border);
   border-radius: var(--sg-radius-md);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .sg-datatable--embedded {
@@ -109,36 +112,40 @@
 // Subheader — Figma table-subheader (1122:38208): px 30 py 16
 .sg-datatable__subheader {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-wrap: nowrap;
+  align-items: center;
   justify-content: space-between;
-  gap: 20px var(--sg-table-toolbar-gap);
+  gap: 16px var(--sg-table-toolbar-gap);
   padding: var(--sg-table-subheader-padding-y) var(--sg-table-header-inset-x);
+  overflow: visible;
+  position: relative;
+  z-index: 2;
 }
 
 .sg-datatable__subheader-left {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 20px;
   min-width: 0;
-  flex: 1 1 320px;
+  flex: 1 1 auto;
 }
 
 .sg-datatable__filter-controls {
   display: flex;
   align-items: center;
   gap: var(--sg-table-filter-gap);
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 
 .sg-datatable__subheader-right {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
   gap: var(--sg-table-toolbar-gap);
-  flex: 1 1 360px;
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .sg-datatable__filter-btn {
@@ -196,9 +203,45 @@
 
 .sg-datatable__tags {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   align-items: center;
+  min-width: 0;
+}
+
+@media (max-width: 576px) {
+  .sg-datatable__subheader {
+    flex-wrap: wrap;
+    align-items: stretch;
+    row-gap: 12px;
+  }
+
+  .sg-datatable__subheader-left {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+
+  .sg-datatable__subheader-right {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+
+  .sg-datatable__search {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .sg-datatable__search-input {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
+
+  .sg-datatable__tags {
+    flex-wrap: wrap;
+  }
 }
 
 .sg-datatable__tag {
@@ -228,9 +271,10 @@
 
 .sg-datatable__toolbar-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 16px;
+  flex: 0 0 auto;
 }
 
 // Figma toolbar button variants
@@ -285,6 +329,11 @@
   display: flex;
   align-items: center;
   gap: var(--sg-table-search-gap);
+  flex: 0 0 auto;
+}
+
+.sg-datatable__scope-dropdown {
+  position: relative;
 }
 
 .sg-datatable__scope-dropdown .dropdown-toggle {
@@ -293,10 +342,10 @@
   gap: 6px;
   min-height: var(--sg-table-control-height);
   padding: var(--sg-v-padding);
-  border: 1px solid var(--sg-border);
+  border: 1px solid var(--sg-border-default);
   border-radius: var(--sg-radius-xs);
   background: var(--sg-surface);
-  color: var(--sg-text-disabled);
+  color: var(--sg-text-body);
   font-size: var(--sg-type-subtitle-size);
   font-weight: 600;
   line-height: var(--sg-type-subtitle-lh);
@@ -308,8 +357,21 @@
 
   i {
     font-size: 1rem;
-    color: var(--sg-text-disabled);
+    color: var(--sg-text-body);
   }
+
+  &:hover,
+  &:focus-visible {
+    background: var(--sg-surface-hover);
+    color: var(--sg-text-body);
+  }
+}
+
+.sg-datatable__scope-dropdown .dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
 }
 
 .sg-datatable__scope {
@@ -333,7 +395,7 @@
 }
 
 .sg-datatable__search-input {
-  width: 160px;
+  width: clamp(80px, 12vw, 160px);
   min-height: var(--sg-table-control-height);
   padding: 6px 12px;
   border-color: var(--sg-surface-darker);
@@ -364,6 +426,7 @@
 
 .sg-datatable__scroll {
   overflow-x: auto;
+  border-top: 0;
 }
 
 .sg-datatable__table {

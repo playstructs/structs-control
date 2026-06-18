@@ -14,6 +14,10 @@ export const MSG_TYPES = Object.freeze({
   GUILD_UPDATE_ENTRY_RANK: "/structs.structs.MsgGuildUpdateEntryRank",
   GUILD_UPDATE_OWNER_ID: "/structs.structs.MsgGuildUpdateOwnerId",
   GUILD_UPDATE_JOIN_INFUSION_MINIMUM: "/structs.structs.MsgGuildUpdateJoinInfusionMinimum",
+  GUILD_UPDATE_JOIN_INFUSION_MINIMUM_BYPASS_BY_REQUEST:
+    "/structs.structs.MsgGuildUpdateJoinInfusionMinimumBypassByRequest",
+  GUILD_UPDATE_JOIN_INFUSION_MINIMUM_BYPASS_BY_INVITE:
+    "/structs.structs.MsgGuildUpdateJoinInfusionMinimumBypassByInvite",
 
   // Guild membership
   GUILD_MEMBERSHIP_KICK: "/structs.structs.MsgGuildMembershipKick",

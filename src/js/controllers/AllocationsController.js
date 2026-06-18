@@ -1,8 +1,8 @@
 import { AbstractController } from "../framework/AbstractController.js";
 import { AbstractViewModel } from "../framework/AbstractViewModel.js";
-import { LayoutViewModel } from "../view_models/LayoutViewModel.js";
 import { ResourceView } from "../view_models/components/ResourceView.js";
 import { DataTable } from "../view_models/components/DataTable.js";
+import { tableSectionCard } from "../view_models/components/TableSectionCard.js";
 import { notify } from "../store/notify.js";
 import { keys } from "../store/keys.js";
 import {
@@ -86,89 +86,88 @@ class AllocationsViewModel extends AbstractViewModel {
     const gridIndex = this._gridIndex();
     const lookup = buildEntityLookup(this.store);
 
-    return `
-      ${LayoutViewModel.pageHeader({
-        title: "Allocations",
-        subtitle: "Power flow from sources to destinations on the guild chain.",
-      })}
-      ${ResourceView.render(list, {
-        success: (rows) => {
-          const filterSchema = allocationsFilterSchema(rows, gridIndex);
-          const filters = parseFiltersFromParams(this.params, "", filterSchema);
-          const t = new DataTable({
-            id: "alloc-table",
-            filterSchema,
-            filters,
-            searchColumns: [
-              { id: "type", label: "Type" },
-              { id: "destination", label: "Destination" },
-              { id: "source", label: "Source" },
-              { id: "controller", label: "Controller" },
-              { id: "id", label: "ID" },
-            ],
-            columns: [
-              {
-                id: "type",
-                label: "Type",
-                get: allocationTypeLabel,
-                sort: (a, b) => allocationTypeLabel(a).localeCompare(allocationTypeLabel(b)),
+    return ResourceView.render(list, {
+      success: (rows) => {
+        const filterSchema = allocationsFilterSchema(rows, gridIndex);
+        const filters = parseFiltersFromParams(this.params, "", filterSchema);
+        const t = new DataTable({
+          id: "alloc-table",
+          embedded: true,
+          filterSchema,
+          filters,
+          searchColumns: [
+            { id: "type", label: "Type" },
+            { id: "destination", label: "Destination" },
+            { id: "source", label: "Source" },
+            { id: "controller", label: "Controller" },
+            { id: "id", label: "ID" },
+          ],
+          columns: [
+            {
+              id: "type",
+              label: "Type",
+              get: allocationTypeLabel,
+              sort: (a, b) => allocationTypeLabel(a).localeCompare(allocationTypeLabel(b)),
+            },
+            {
+              id: "destination",
+              label: "Destination",
+              get: allocationDestinationId,
+              sort: (a, b) => allocationDestinationId(a).localeCompare(allocationDestinationId(b)),
+              render: (v) => renderEntityRef(v, lookup),
+            },
+            {
+              id: "source",
+              label: "Power source",
+              get: allocationSourceId,
+              sort: (a, b) => allocationSourceId(a).localeCompare(allocationSourceId(b)),
+              render: (v) => renderEntityRef(v, lookup),
+            },
+            {
+              id: "power",
+              label: "Amount",
+              align: "end",
+              get: (row) => formatAllocationPower(row, gridIndex),
+              sort: (a, b) =>
+                Number(formatAllocationPower(a, gridIndex).replace(/\D/g, "") || 0) -
+                Number(formatAllocationPower(b, gridIndex).replace(/\D/g, "") || 0),
+            },
+            {
+              id: "controller",
+              label: "Controller",
+              get: allocationControllerId,
+              render: (v) => renderEntityRef(v, lookup),
+            },
+            {
+              id: "id",
+              label: "ID",
+              get: allocationId,
+              render: (v) => renderEntityRef(v, lookup),
+            },
+            {
+              id: "actions",
+              label: "",
+              align: "end",
+              get: () => "",
+              render: (_v, row) => {
+                const id = allocationId(row);
+                return `<div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-light" data-action="update-alloc" data-id="${escapeAttr(id)}" data-source="${escapeAttr(allocationSourceId(row))}">Update</button>
+                  <button type="button" class="btn btn-outline-danger" data-action="delete-alloc" data-id="${escapeAttr(id)}" data-source="${escapeAttr(allocationSourceId(row))}">Delete</button>
+                </div>`;
               },
-              {
-                id: "destination",
-                label: "Destination",
-                get: allocationDestinationId,
-                sort: (a, b) => allocationDestinationId(a).localeCompare(allocationDestinationId(b)),
-                render: (v) => renderEntityRef(v, lookup),
-              },
-              {
-                id: "source",
-                label: "Power source",
-                get: allocationSourceId,
-                sort: (a, b) => allocationSourceId(a).localeCompare(allocationSourceId(b)),
-                render: (v) => renderEntityRef(v, lookup),
-              },
-              {
-                id: "power",
-                label: "Amount",
-                align: "end",
-                get: (row) => formatAllocationPower(row, gridIndex),
-                sort: (a, b) =>
-                  Number(formatAllocationPower(a, gridIndex).replace(/\D/g, "") || 0) -
-                  Number(formatAllocationPower(b, gridIndex).replace(/\D/g, "") || 0),
-              },
-              {
-                id: "controller",
-                label: "Controller",
-                get: allocationControllerId,
-                render: (v) => renderEntityRef(v, lookup),
-              },
-              {
-                id: "id",
-                label: "ID",
-                get: allocationId,
-                render: (v) => renderEntityRef(v, lookup),
-              },
-              {
-                id: "actions",
-                label: "",
-                align: "end",
-                get: () => "",
-                render: (_v, row) => {
-                  const id = allocationId(row);
-                  return `<div class="btn-group btn-group-sm">
-                    <button type="button" class="btn btn-light" data-action="update-alloc" data-id="${escapeAttr(id)}" data-source="${escapeAttr(allocationSourceId(row))}">Update</button>
-                    <button type="button" class="btn btn-outline-danger" data-action="delete-alloc" data-id="${escapeAttr(id)}" data-source="${escapeAttr(allocationSourceId(row))}">Delete</button>
-                  </div>`;
-                },
-              },
-            ],
-            rows: Array.isArray(rows) ? rows : [],
-            ...parseTableParams(this.params),
-          });
-          return t.renderHTML();
-        },
-      })}
-    `;
+            },
+          ],
+          rows: Array.isArray(rows) ? rows : [],
+          ...parseTableParams(this.params),
+        });
+        return tableSectionCard({
+          title: "Allocations",
+          subtitle: "Power flow from sources to destinations on the guild chain.",
+          bodyHtml: t.renderHTML(),
+        });
+      },
+    });
   }
 
   bind() {
