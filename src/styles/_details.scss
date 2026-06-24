@@ -232,44 +232,69 @@
   resize: vertical;
 }
 
+.sg-guild-details__library-empty {
+  margin: 52px 0 0;
+  font-size: var(--sg-type-subtitle-size);
+  line-height: var(--sg-type-subtitle-lh);
+  color: var(--sg-text-caption);
+  text-align: center;
+}
+
 // Floating save / cancel bar — Figma bottom-edit-bar (1:9942)
+// Centered in the main content column (right of sidebar), not full viewport.
 .sg-edit-save-bar {
+  --sg-edit-bar-inset-x: var(--sg-shell-gutter);
+  --sg-edit-bar-content-w: calc(100vw - var(--sg-edit-bar-sidebar-w));
+  --sg-edit-bar-max-w: min(
+    var(--sg-design-edit-bar-w),
+    calc(var(--sg-edit-bar-content-w) - 2 * var(--sg-edit-bar-inset-x))
+  );
   position: fixed;
   bottom: 24px;
-  left: 50%;
-  z-index: 1040;
-  display: none;
+  left: calc(var(--sg-edit-bar-sidebar-w) + var(--sg-edit-bar-content-w) / 2);
+  z-index: var(--sg-z-toast);
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  width: min(1005px, calc(100vw - 48px));
+  width: var(--sg-edit-bar-max-w);
   min-height: 60px;
   padding: 14px 32px;
   border-radius: 10px;
   background: #424562;
   box-shadow: var(--sg-shadow-lg);
+  font-family: var(--sg-font-family);
+  -webkit-font-smoothing: antialiased;
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transform: translateX(-50%) translateY(16px);
+  transform: translate(-50%, calc(100% + 48px));
   transition:
-    transform var(--sg-transition-base),
-    opacity var(--sg-transition-base);
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.28s ease,
+    visibility 0.35s;
 
   &.is-visible {
-    display: flex;
     opacity: 1;
+    visibility: visible;
     pointer-events: auto;
-    transform: translateX(-50%) translateY(0);
+    transform: translate(-50%, 0);
   }
 }
 
+body:has(.sg-shell[data-sidebar="expanded"]) .sg-edit-save-bar {
+  --sg-edit-bar-sidebar-w: var(--sg-shell-sidebar-expanded-w);
+}
+
+// Message: Inter Medium 16px / 1.3 (node 1:9943)
 .sg-edit-save-bar__message {
   margin: 0;
   flex: 1 1 auto;
-  font-size: 1rem;
+  font-family: var(--sg-font-family);
+  font-size: var(--sg-type-body-size);
   font-weight: 500;
   line-height: 1.3;
-  color: var(--sg-text-on-primary);
+  color: var(--sg-edit-bar-text);
   text-align: center;
 }
 
@@ -280,6 +305,7 @@
   flex-shrink: 0;
 }
 
+// Buttons: Inter Semi Bold 16px / 1.3 (nodes 1:9944, 1:9945)
 .sg-edit-save-bar__btn {
   display: inline-flex;
   align-items: center;
@@ -288,10 +314,11 @@
   padding: 6px 12px;
   border: 1px solid transparent;
   border-radius: var(--sg-radius-xs);
-  font-size: 1rem;
+  font-family: var(--sg-font-family);
+  font-size: var(--sg-type-body-size);
   font-weight: 600;
   line-height: 1.3;
-  color: var(--sg-text-on-primary);
+  color: var(--sg-edit-bar-text);
   white-space: nowrap;
 }
 
@@ -327,5 +354,25 @@ body.sg-has-edit-save-bar .sg-page__body {
     .sg-edit-save-bar__btn {
       flex: 1 1 0;
     }
+  }
+}
+
+@media (min-width: 1728px) {
+  .sg-guild-details__layout {
+    grid-template-columns: var(--sg-design-details-main-w) var(--sg-design-details-aside-w);
+    max-width: calc(var(--sg-design-details-main-w) + var(--sg-design-details-aside-w) + 16px);
+  }
+
+  .sg-edit-save-bar {
+    --sg-edit-bar-content-w: var(--sg-design-content-w);
+    --sg-edit-bar-max-w: min(
+      var(--sg-design-edit-bar-w),
+      calc(var(--sg-design-content-w) - 2 * var(--sg-edit-bar-inset-x))
+    );
+    left: calc(
+      (100vw - var(--sg-design-viewport-w)) / 2 + var(--sg-edit-bar-sidebar-w) +
+        var(--sg-edit-bar-content-w) / 2
+    );
+    width: var(--sg-edit-bar-max-w);
   }
 }

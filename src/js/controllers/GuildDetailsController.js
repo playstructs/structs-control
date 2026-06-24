@@ -11,7 +11,6 @@ import {
   applyGuildDetailsForm,
   bypassLevelToInt,
   diffGuildForm,
-  guildFormStatesEqual,
   guildToFormState,
   readGuildDetailsForm,
 } from "../util/guildDetailsForm.js";
@@ -22,15 +21,21 @@ const BYPASS_OPTIONS = [
   { value: "member", label: "Member" },
 ];
 
-/** Placeholder gallery thumbs until a logo API exists. */
-const LOGO_GALLERY = [
-  "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=170&h=228&fit=crop",
-  "https://images.unsplash.com/photo-1464226184884-fa280b87eda0?w=170&h=228&fit=crop",
-  "https://images.unsplash.com/photo-1501004318641-b39e6f593375?w=170&h=228&fit=crop",
-  "https://images.unsplash.com/photo-1466692476866-aef1dfb1e735?w=170&h=228&fit=crop",
-  "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=170&h=228&fit=crop",
-  "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=170&h=228&fit=crop",
-];
+/**
+ * Guild-uploaded images for the library sidebar (empty until an API provides them).
+ * @param {import("../types/api.js").GuildData | null | undefined} guild
+ * @returns {string[]}
+ */
+function logoGalleryUrls(guild) {
+  const raw =
+    guild?.images ??
+    guild?.image_library ??
+    guild?.imageLibrary ??
+    guild?.gallery ??
+    guild?.logos;
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => (typeof item === "string" ? item : item?.url ?? item?.src ?? "")).filter(Boolean);
+}
 
 /**
  * Guild Details — Figma Faction Details + bottom edit bar (1920:64585).
@@ -58,11 +63,29 @@ class GuildDetailsViewModel extends AbstractViewModel {
     this.guildId = deps.guildId;
     /** @type {import("../util/guildDetailsForm.js").GuildDetailsFormState | null} */
     this.baseline = null;
+    /** @type {string} */
+    this._baselineKey = "";
     this.dirty = false;
+    /** @type {HTMLElement | null} */
+    this._editBar = null;
+    /** @type {((event: Event) => void) | null} */
+    this._docDirtyCheck = null;
   }
 
   mount(container) {
+    this._docDirtyCheck = (event) => {
+      const form = /** @type {HTMLFormElement | null} */ (this.container?.querySelector("#guild-details-form"));
+      if (!form) return;
+      const target = event.target;
+      if (!(target instanceof Node) || !form.contains(target)) return;
+      this._syncDirty(form);
+    };
+    document.addEventListener("input", this._docDirtyCheck, true);
+    document.addEventListener("change", this._docDirtyCheck, true);
+    document.addEventListener("keyup", this._docDirtyCheck, true);
+    document.addEventListener("paste", this._docDirtyCheck, true);
     super.mount(container);
+    this._ensureEditBar();
     this._unsubs.push(
       this.store.subscribe(keys.guild(this.guildId), () => {
         if (this.dirty) return;
@@ -71,16 +94,83 @@ class GuildDetailsViewModel extends AbstractViewModel {
     );
   }
 
+  update() {
+    if (this.dirty) return;
+    super.update();
+  }
+
   unmount() {
-    hideEditSaveBar(document.getElementById("guild-edit-save-bar"));
-    document.getElementById("guild-edit-save-bar")?.remove();
+    if (this._docDirtyCheck) {
+      document.removeEventListener("input", this._docDirtyCheck, true);
+      document.removeEventListener("change", this._docDirtyCheck, true);
+      document.removeEventListener("keyup", this._docDirtyCheck, true);
+      document.removeEventListener("paste", this._docDirtyCheck, true);
+    }
+    this._docDirtyCheck = null;
+    hideEditSaveBar(this._editBar);
+    this._editBar?.remove();
+    this._editBar = null;
     super.unmount();
+  }
+
+  _ensureEditBar() {
+    if (this._editBar?.isConnected) return this._editBar;
+
+    document.getElementById("guild-edit-save-bar")?.remove();
+
+    const wrap = document.createElement("div");
+    wrap.innerHTML = editSaveBar({ id: "guild-edit-save-bar" });
+    const bar = /** @type {HTMLElement | null} */ (wrap.firstElementChild);
+    if (!bar) return null;
+
+    document.body.appendChild(bar);
+    hideEditSaveBar(bar);
+
+    bar.querySelector('[data-role="edit-cancel"]')?.addEventListener("click", () => {
+      const form = /** @type {HTMLFormElement | null} */ (this.container?.querySelector("#guild-details-form"));
+      if (!form || !this.baseline) return;
+      applyGuildDetailsForm(form, this.baseline);
+      form.querySelectorAll("[data-action='pick-logo']").forEach((btn) => {
+        btn.classList.toggle("is-selected", btn.getAttribute("data-logo-url") === this.baseline?.logo);
+      });
+      this.dirty = false;
+      hideEditSaveBar(this._editBar);
+    });
+
+    bar.querySelector('[data-role="edit-save"]')?.addEventListener("click", () => {
+      const form = /** @type {HTMLFormElement | null} */ (this.container?.querySelector("#guild-details-form"));
+      if (!form) return;
+      this._save(form, this._editBar);
+    });
+
+    this._editBar = bar;
+    return bar;
+  }
+
+  /** @param {HTMLFormElement} form */
+  _captureBaseline(form) {
+    this.baseline = readGuildDetailsForm(form);
+    this._baselineKey = JSON.stringify(this.baseline);
+    this.dirty = false;
   }
 
   /** @param {import("../types/api.js").GuildData | null | undefined} guild */
   _syncBaseline(guild) {
     this.baseline = guildToFormState(guild);
+    this._baselineKey = JSON.stringify(this.baseline);
     this.dirty = false;
+  }
+
+  /** @param {HTMLFormElement} form */
+  _syncDirty(form) {
+    if (!this.baseline) this._captureBaseline(form);
+    const current = readGuildDetailsForm(form);
+    const nextDirty = JSON.stringify(current) !== this._baselineKey;
+    if (nextDirty === this.dirty) return;
+    this.dirty = nextDirty;
+    const bar = this._ensureEditBar();
+    if (this.dirty) showEditSaveBar(bar);
+    else hideEditSaveBar(bar);
   }
 
   render() {
@@ -88,7 +178,9 @@ class GuildDetailsViewModel extends AbstractViewModel {
     return ResourceView.render(guild, {
       success: (g) => {
         if (!this.dirty) this._syncBaseline(/** @type {import("../types/api.js").GuildData} */ (g));
-        const s = guildToFormState(/** @type {import("../types/api.js").GuildData} */ (g));
+        const guildData = /** @type {import("../types/api.js").GuildData} */ (g);
+        const s = guildToFormState(guildData);
+        const gallery = logoGalleryUrls(guildData);
         return `
           <div class="sg-guild-details">
             <form id="guild-details-form" class="sg-guild-details__layout" novalidate>
@@ -153,16 +245,21 @@ class GuildDetailsViewModel extends AbstractViewModel {
               </section>
               <aside class="sg-guild-details__library" aria-label="Image library">
                 ${overviewCardHeader({ title: "Image Library", showMenu: false })}
-                <div class="sg-guild-details__library-grid">
-                  ${LOGO_GALLERY.map(
-                    (url, i) =>
-                      `<button type="button" class="sg-guild-details__library-thumb${url === s.logo ? " is-selected" : ""}" data-action="pick-logo" data-logo-url="${escapeAttr(url)}" aria-label="Select logo ${i + 1}"><img src="${escapeAttr(url)}" alt="" /></button>`,
-                  ).join("")}
-                </div>
+                ${
+                  gallery.length
+                    ? `<div class="sg-guild-details__library-grid">
+                  ${gallery
+                    .map(
+                      (url, i) =>
+                        `<button type="button" class="sg-guild-details__library-thumb${url === s.logo ? " is-selected" : ""}" data-action="pick-logo" data-logo-url="${escapeAttr(url)}" aria-label="Select logo ${i + 1}"><img src="${escapeAttr(url)}" alt="" /></button>`,
+                    )
+                    .join("")}
+                </div>`
+                    : `<p class="sg-guild-details__library-empty">No images uploaded yet.</p>`
+                }
               </aside>
             </form>
           </div>
-          ${editSaveBar({ id: "guild-edit-save-bar" })}
         `;
       },
     });
@@ -173,35 +270,18 @@ class GuildDetailsViewModel extends AbstractViewModel {
     const form = /** @type {HTMLFormElement | null} */ (this.container.querySelector("#guild-details-form"));
     if (!form) return;
 
-    const guild = this.store.read(keys.guild(this.guildId));
-    if (!this.baseline && guild.status === "success" && guild.data) {
-      this._syncBaseline(/** @type {import("../types/api.js").GuildData} */ (guild.data));
-    }
-    if (!this.baseline) return;
+    if (!this.dirty) this._captureBaseline(form);
 
-    let bar = /** @type {HTMLElement | null} */ (
-      this.container.querySelector("#guild-edit-save-bar") ?? document.getElementById("guild-edit-save-bar")
-    );
-    document.querySelectorAll("#guild-edit-save-bar").forEach((node) => {
-      if (node !== bar) node.remove();
-    });
-    if (bar && bar.parentElement !== document.body) {
-      document.body.appendChild(bar);
-    }
+    const bar = this._ensureEditBar();
     if (!this.dirty) hideEditSaveBar(bar);
+
+    const onDirtyCheck = () => this._syncDirty(form);
+    for (const type of ["input", "change", "keyup", "paste"]) {
+      form.addEventListener(type, onDirtyCheck);
+    }
 
     const logoInput = /** @type {HTMLInputElement | null} */ (form.querySelector('[data-role="logo-input"]'));
     const logoPreview = /** @type {HTMLImageElement | null} */ (form.querySelector('[data-role="logo-preview"]'));
-
-    const syncDirty = () => {
-      const current = readGuildDetailsForm(form);
-      this.dirty = !guildFormStatesEqual(this.baseline, current);
-      if (this.dirty) showEditSaveBar(bar);
-      else hideEditSaveBar(bar);
-    };
-
-    form.addEventListener("input", syncDirty);
-    form.addEventListener("change", syncDirty);
 
     form.querySelector('[data-action="change-logo"]')?.addEventListener("click", () => {
       const next = window.prompt("Logo image URL", logoInput?.value ?? "");
@@ -214,7 +294,7 @@ class GuildDetailsViewModel extends AbstractViewModel {
       form.querySelectorAll("[data-action='pick-logo']").forEach((btn) => {
         btn.classList.toggle("is-selected", btn.getAttribute("data-logo-url") === next);
       });
-      syncDirty();
+      this._syncDirty(form);
     });
 
     form.querySelectorAll('[data-action="pick-logo"]').forEach((btn) => {
@@ -228,21 +308,8 @@ class GuildDetailsViewModel extends AbstractViewModel {
         form.querySelectorAll("[data-action='pick-logo']").forEach((other) => {
           other.classList.toggle("is-selected", other === btn);
         });
-        syncDirty();
+        this._syncDirty(form);
       });
-    });
-
-    bar?.querySelector('[data-role="edit-cancel"]')?.addEventListener("click", () => {
-      applyGuildDetailsForm(form, /** @type {import("../util/guildDetailsForm.js").GuildDetailsFormState} */ (this.baseline));
-      form.querySelectorAll("[data-action='pick-logo']").forEach((btn) => {
-        btn.classList.toggle("is-selected", btn.getAttribute("data-logo-url") === this.baseline?.logo);
-      });
-      this.dirty = false;
-      hideEditSaveBar(bar);
-    });
-
-    bar?.querySelector('[data-role="edit-save"]')?.addEventListener("click", () => {
-      this._save(form, bar);
     });
   }
 
@@ -319,6 +386,7 @@ class GuildDetailsViewModel extends AbstractViewModel {
 
     if (txCount > 0) {
       this.baseline = { ...current };
+      this._baselineKey = JSON.stringify(this.baseline);
       this.dirty = false;
       hideEditSaveBar(bar);
       notify.toast(txCount === 1 ? "Change submitted" : `${txCount} changes submitted`, "success");

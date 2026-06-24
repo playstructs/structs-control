@@ -7,23 +7,24 @@
 export function editSaveBar(props = {}) {
   const id = props.id ?? "edit-save-bar";
   const message = props.message ?? "You've made changes. Don't forget to save!";
-  return `
-    <div class="sg-edit-save-bar" id="${escapeAttr(id)}" role="region" aria-label="Unsaved changes" aria-hidden="true">
+  return `<div class="sg-edit-save-bar" id="${escapeAttr(id)}" role="region" aria-label="Unsaved changes" aria-hidden="true">
       <p class="sg-edit-save-bar__message">${escapeHtml(message)}</p>
       <div class="sg-edit-save-bar__actions">
         <button type="button" class="sg-edit-save-bar__btn sg-edit-save-bar__btn--save" data-role="edit-save">Save</button>
         <button type="button" class="sg-edit-save-bar__btn sg-edit-save-bar__btn--cancel" data-role="edit-cancel">Cancel</button>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
 /** @param {HTMLElement | null | undefined} bar */
 export function showEditSaveBar(bar) {
   if (!bar) return;
+  if (bar.classList.contains("is-visible")) return;
   bar.setAttribute("aria-hidden", "false");
-  bar.classList.add("is-visible");
   document.body.classList.add("sg-has-edit-save-bar");
+  requestAnimationFrame(() => {
+    bar.classList.add("is-visible");
+  });
 }
 
 /** @param {HTMLElement | null | undefined} bar */

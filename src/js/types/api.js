@@ -27,6 +27,8 @@
  *   join_infusion_minimum?: string,
  *   join_infusion_minimum_bypass_by_request?: number | string,
  *   join_infusion_minimum_bypass_by_invite?: number | string,
+ *   images?: string[] | Array<{ url?: string, src?: string }>,
+ *   image_library?: string[] | Array<{ url?: string, src?: string }>,
  *   endpoint?: string,
  *   client_websocket?: string,
  *   grass_nats_websocket?: string,

@@ -901,3 +901,10 @@
 .offcanvas-backdrop.show {
   opacity: 0.42;
 }
+
+@media (min-width: 1728px) {
+  .sg-table-section,
+  .sg-datatable {
+    max-width: var(--sg-design-content-w);
+  }
+}
