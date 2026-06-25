@@ -8,9 +8,9 @@ export function statusBadge(status) {
   const label = String(status ?? "—");
   const normalized = label.toLowerCase();
   let dotClass = "";
-  if (/(online|approved|active|joined|success)/.test(normalized)) dotClass = "is-online";
-  else if (/(pending|waiting|review)/.test(normalized)) dotClass = "is-pending";
-  else if (/(offline|rejected|denied|failed|error)/.test(normalized)) dotClass = "is-offline";
+  if (/(online|approved|active|joined|success|confirmed)/.test(normalized)) dotClass = "is-online";
+  else if (/(pending|waiting|review|signing|confirming|broadcasting)/.test(normalized)) dotClass = "is-pending";
+  else if (/(offline|rejected|denied|failed|error|cancelled|canceled)/.test(normalized)) dotClass = "is-offline";
 
   return `<span class="sg-status"><span class="sg-status__dot ${dotClass}" aria-hidden="true"></span>${escapeHtml(label)}</span>`;
 }

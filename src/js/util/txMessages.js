@@ -15,6 +15,7 @@ import {
   MsgGuildMembershipRequestDeny,
   MsgPlayerUpdateName,
   MsgPlayerUpdatePfp,
+  MsgPlayerUpdatePfpClientRenderAttributes,
   MsgAllocationCreate,
   MsgAllocationUpdate,
   MsgAllocationDelete,
@@ -113,6 +114,20 @@ export function buildPlayerUpdatePfp(body) {
       creator: creatorOrThrow(body.creator),
       playerId: body.playerId,
       pfp: body.pfp,
+    }),
+  };
+}
+
+/**
+ * @param {{ creator: string, playerId: string, pfpClientRenderAttributes: string }} body
+ */
+export function buildPlayerUpdatePfpRender(body) {
+  return {
+    typeUrl: MSG_TYPES.PLAYER_UPDATE_PFP_RENDER,
+    value: MsgPlayerUpdatePfpClientRenderAttributes.fromPartial({
+      creator: creatorOrThrow(body.creator),
+      playerId: body.playerId,
+      pfpClientRenderAttributes: body.pfpClientRenderAttributes,
     }),
   };
 }

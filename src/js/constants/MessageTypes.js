@@ -30,6 +30,7 @@ export const MSG_TYPES = Object.freeze({
   // Player
   PLAYER_UPDATE_NAME: "/structs.structs.MsgPlayerUpdateName",
   PLAYER_UPDATE_PFP: "/structs.structs.MsgPlayerUpdatePfp",
+  PLAYER_UPDATE_PFP_RENDER: "/structs.structs.MsgPlayerUpdatePfpClientRenderAttributes",
   PLAYER_UPDATE_GUILD_RANK: "/structs.structs.MsgPlayerUpdateGuildRank",
 
   // Substation

@@ -12,6 +12,7 @@ import { rangeFilterField } from "../util/tableFilterSchemas.js";
 import { buildEntityLookup } from "../util/entityLookup.js";
 import { renderEntityLink } from "../util/entityLink.js";
 import { tableSectionCard } from "../view_models/components/TableSectionCard.js";
+import { pfpAvatar } from "../view_models/components/PfpViewer.js";
 
 const PLAYERS_FILTER_SCHEMA = [rangeFilterField("rank", "Rank", (r) => r.guild_rank ?? 0)];
 
@@ -101,16 +102,31 @@ class PlayersListViewModel extends AbstractViewModel {
               label: "Player",
               get: (r) => r.id,
               sort: (a, b) => String(a.id).localeCompare(String(b.id)),
-              render: (v) => renderEntityLink(v, lookup),
+              render: (v, row) =>
+                `<span class="d-inline-flex align-items-center gap-2">${pfpAvatar({
+                  attributes: row?.pfp_client_render_attributes ?? null,
+                  size: "sm",
+                })}${renderEntityLink(v, lookup)}</span>`,
             },
-            { id: "name", label: "Name", get: (r) => r.name ?? "—", sort: (a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")) },
+            {
+              id: "name",
+              label: "Name",
+              get: (r) => r.name ?? "—",
+              sort: (a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")),
+            },
             {
               id: "address",
               label: "Primary address",
               get: (r) => r.primary_address ?? "—",
               render: (v) => `<span class="sg-datatable__cell-mono">${escapeHtml(v)}</span>`,
             },
-            { id: "rank", label: "Rank", get: (r) => r.guild_rank ?? 0, sort: (a, b) => (a.guild_rank ?? 0) - (b.guild_rank ?? 0), align: "end" },
+            {
+              id: "rank",
+              label: "Rank",
+              get: (r) => r.guild_rank ?? 0,
+              sort: (a, b) => (a.guild_rank ?? 0) - (b.guild_rank ?? 0),
+              align: "end",
+            },
           ],
           rows: list,
           keyFn: (r) => String(r.id),
@@ -251,10 +267,14 @@ class PlayersBulkViewModel extends AbstractViewModel {
   }
 }
 
-
 function escapeAttr(s) {
-  return String(s ?? "").replace(/"/g, "&quot;").replace(/&/g, "&amp;");
+  return String(s ?? "")
+    .replace(/"/g, "&quot;")
+    .replace(/&/g, "&amp;");
 }
 function escapeHtml(s) {
-  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }

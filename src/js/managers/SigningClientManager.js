@@ -56,7 +56,9 @@ export class SigningClientManager {
     });
     this.address = address;
     if (this.store.tx) {
-      this.store.tx.attachStargate(this.signingClient, address, DEFAULT_FEE);
+      // Pass wsUrl so the queue scopes its persisted snapshot per chain+account
+      // and rehydrates any queued txs left over from a previous page load.
+      this.store.tx.attachStargate(this.signingClient, address, DEFAULT_FEE, wsUrl);
     }
   }
 

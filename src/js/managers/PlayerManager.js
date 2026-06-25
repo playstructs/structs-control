@@ -3,6 +3,7 @@ import {
   buildGuildMembershipKick,
   buildPlayerUpdateName,
   buildPlayerUpdatePfp,
+  buildPlayerUpdatePfpRender,
 } from "../util/txMessages.js";
 
 export class PlayerManager {
@@ -52,6 +53,16 @@ export class PlayerManager {
   }
 
   /**
+   * Update the layered profile-picture render attributes via on-chain
+   * MsgPlayerUpdatePfpClientRenderAttributes.
+   * @param {string} playerId
+   * @param {string} pfpClientRenderAttributes JSON string ({head,neck,body,arms,background})
+   */
+  buildUpdatePfpRenderMessage(playerId, pfpClientRenderAttributes) {
+    return buildPlayerUpdatePfpRender({ creator: this._creator(), playerId, pfpClientRenderAttributes });
+  }
+
+  /**
    * Optimistic username update via chain tx.
    * @param {string} playerId
    * @param {string} newName
@@ -93,6 +104,31 @@ export class PlayerManager {
     });
     try {
       const msg = this.buildUpdatePfpMessage(playerId, pfp);
+      await this.store.tx?.enqueue(msg, { invalidate: [keys.player(playerId)] });
+    } catch (e) {
+      this.store.write(keys.player(playerId), { ...prev, stale: true });
+      throw e;
+    }
+  }
+
+  /**
+   * Optimistic update of the layered PFP render attributes via chain tx.
+   * @param {string} playerId
+   * @param {string} json JSON string ({head,neck,body,arms,background})
+   */
+  async updatePfpRender(playerId, json) {
+    const prev = this.store.read(keys.player(playerId));
+    const prevData = /** @type {import("../types/api.js").PlayerData | null} */ (prev.data);
+    const optimistic = { ...(prevData ?? {}), pfp_client_render_attributes: json };
+    this.store.write(keys.player(playerId), {
+      status: "success",
+      data: optimistic,
+      error: null,
+      updatedAt: Date.now(),
+      stale: true,
+    });
+    try {
+      const msg = this.buildUpdatePfpRenderMessage(playerId, json);
       await this.store.tx?.enqueue(msg, { invalidate: [keys.player(playerId)] });
     } catch (e) {
       this.store.write(keys.player(playerId), { ...prev, stale: true });

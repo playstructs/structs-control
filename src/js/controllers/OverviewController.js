@@ -189,6 +189,7 @@ function txToActivityItem(record) {
 function txIcon(status) {
   if (status === "confirmed") return { icon: "bi-check-circle", tone: /** @type {const} */ ("success") };
   if (status === "failed") return { icon: "bi-x-circle", tone: /** @type {const} */ ("error") };
+  if (status === "cancelled") return { icon: "bi-slash-circle", tone: /** @type {const} */ ("info") };
   if (status === "confirming") return { icon: "bi-hourglass-split", tone: /** @type {const} */ ("warning") };
   return { icon: "bi-arrow-repeat", tone: /** @type {const} */ ("info") };
 }
@@ -196,12 +197,12 @@ function txIcon(status) {
 /** @param {import("../store/TxQueue.js").TxStatus} status */
 function statusLabel(status) {
   const labels = {
-    pending: "Pending",
+    pending: "Queued",
     signing: "Signing",
-    broadcasting: "Broadcasting",
     confirming: "Confirming",
     confirmed: "Confirmed",
     failed: "Failed",
+    cancelled: "Cancelled",
   };
   return labels[status] ?? status;
 }

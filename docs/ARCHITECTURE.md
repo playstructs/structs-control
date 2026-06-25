@@ -83,23 +83,30 @@ Controller        Manager              QueryClient            Store           Vi
 
 ## Write path
 
+`store.tx` (`TxQueue`) is a **serialized, block-paced** signing queue. Enqueued txs broadcast one-at-a-time, one per block (driven by `structs:block:height-changed`, with a timer fallback when GRASS is offline). At most one `signAndBroadcast` is in flight, so the account sequence never races. The queue persists to `sessionStorage` (per `wsUrl:address`) so a reload doesn't lose queued work. See `docs/TRANSACTIONS.md` for the full developer/UI guide.
+
 ```
-View Model          Manager              Store.tx             Stargate          Confirm strategy
+View Model          Manager              Store.tx (queue)       Stargate          Confirm strategy
    │                  │                     │                     │                   │
    │  button click    │                     │                     │                   │
    ├─────────────────►│                     │                     │                   │
-   │                  │  store.tx.enqueue   │                     │                   │
-   │                  ├────────────────────►│                     │                   │
-   │                  │   optimistic patch  │                     │                   │
+   │                  │  store.tx.enqueue   │  status: pending    │                   │
+   │                  ├────────────────────►│  (apply optimistic  │                   │
+   │                  │                     │   patch, persist)   │                   │
+   │                  │                     │  ── on block slot ─►│                   │
    │                  │                     │  signAndBroadcast   │                   │
    │                  │                     ├────────────────────►│                   │
-   │                  │                     │◄─── hash ───────────┤                   │
-   │                  │                     │   poll getTx(hash)  │                   │
+   │                  │                     │◄── hash (included) ─┤                   │
+   │                  │                     │  status: confirming │                   │
+   │                  │                     │   GRASS wait -> getTx poll              │
    │                  │                     ├──────────────────────────────────────► │
    │                  │                     │◄────── confirmed / failed ─────────────┤
-   │                  │                     │   invalidate cache keys                 │
-   │  re-render       │                     │   rollback patch on failure             │
+   │                  │                     │  invalidate cache keys (confirmed)      │
+   │  re-render       │                     │  rollback patch (terminal failure)      │
+   │  await resolves  │◄── whenSettled ─────┤  settle + TX_* event                    │
 ```
+
+State machine: `pending → signing → confirming → confirmed` (success); `… → pending` (retry, if retries remain) or `… → failed` (no retries); `pending → cancelled` (operator cancel). Operators manage the live queue (cancel / reorder / retry / inspect) on the `/alerts` Activity page.
 
 ## Invalidation bridge
 

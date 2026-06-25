@@ -97,8 +97,9 @@ references/       Read-only clones of structs-ai + structs-webapp (see above)
 - **A new Guild API endpoint**: edit `api/GuildAPI.js`, add a Manager method, document in `docs/guild-api-requirements.md`.
 - **A new GRASS listener**: `npm run new:listener` → subclass of `AbstractGrassListener` + wire into `invalidationBridge` if it's about cache, or do explicit `store.write` otherwise.
 - **A new domain manager**: `npm run new:manager`.
+- **Anything that writes to chain state**: read `docs/TRANSACTIONS.md` first — the full guide to issuing, monitoring, reviewing, and acting on transactions via the `store.tx` queue.
 
-Full recipes in `docs/PATTERNS.md`. Architecture in `docs/ARCHITECTURE.md`. Event catalog in `docs/EVENTS.md`.
+Full recipes in `docs/PATTERNS.md`. Architecture in `docs/ARCHITECTURE.md`. Event catalog in `docs/EVENTS.md`. Transaction system in `docs/TRANSACTIONS.md`.
 
 ## Run / build / test
 

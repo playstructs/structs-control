@@ -35,6 +35,7 @@
  *   primary_address?: string,
  *   name?: string,
  *   pfp?: string,
+ *   pfp_client_render_attributes?: string,
  *   guild_rank?: number,
  *   substation_id?: string,
  *   ore?: string,

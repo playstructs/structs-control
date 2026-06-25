@@ -100,3 +100,72 @@
   gap: 8px;
   z-index: var(--sg-z-toast);
 }
+
+// -- Activity / transaction queue --------------------------------------------
+
+.sg-tx-section {
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sg-text-primary);
+    margin-bottom: 8px;
+  }
+
+  &__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 11px;
+    background: var(--sg-surface-subtle, rgba(0, 0, 0, 0.06));
+    color: var(--sg-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+}
+
+.sg-tx-actions {
+  display: inline-flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.sg-tx-spin {
+  display: inline-block;
+  animation: sg-tx-spin 1s linear infinite;
+}
+
+@keyframes sg-tx-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sg-tx-details {
+  &__pre {
+    margin: 8px 0 0;
+    padding: 8px 10px;
+    max-width: 420px;
+    max-height: 240px;
+    overflow: auto;
+    border-radius: var(--sg-radius-sm, 6px);
+    background: var(--sg-surface-subtle, rgba(0, 0, 0, 0.04));
+    font-size: 0.75rem;
+    line-height: 1.45;
+    white-space: pre;
+  }
+
+  summary {
+    cursor: pointer;
+    color: var(--bs-primary);
+    font-size: 0.8125rem;
+  }
+}
