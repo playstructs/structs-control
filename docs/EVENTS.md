@@ -16,13 +16,15 @@ Canonical names live in `src/js/constants/Events.js`. Always reference them via 
 
 | Event | Payload | Fired by | Listeners |
 | --- | --- | --- | --- |
-| `structs:block:height-changed` | `{ height }` | `BlockListener` | `TxQueue` (future: retry-on-block) |
-| `structs:tx:enqueued` | `{ txId, typeUrl }` | reserved | — |
-| `structs:tx:broadcast` | `{ txId, hash }` | reserved | — |
-| `structs:tx:confirmed` | `{ hash, height, code }` | `TxListener` | `TxQueue` (future) |
-| `structs:tx:failed` | `{ txId, error }` | reserved | — |
+| `structs:block:height-changed` | `{ height }` | `BlockListener` | `TxQueue` (paces broadcasts: one tx per block) |
+| `structs:tx:enqueued` | `{ id, status, typeUrl, hash, height, error }` | `TxQueue.enqueue` | open (UIs may listen instead of subscribing) |
+| `structs:tx:broadcast` | `{ id, status, typeUrl, hash, height, error }` | `TxQueue` (on signing) | open |
+| `structs:tx:confirmed` | `{ id, status, typeUrl, hash, height, error }` | `TxQueue` (terminal success) + `TxListener` (GRASS) | `TxQueue` (GRASS confirm hook), open |
+| `structs:tx:failed` | `{ id, status, typeUrl, hash, height, error }` | `TxQueue` (terminal failure/cancel) | open |
 
-`TxQueue` currently doesn't depend on `structs:tx:*` -- it uses `pollingConfirmStrategy`. The events are the seed for replacing the poll-based strategy once the Guild API has a stable tx endpoint or GRASS surface.
+`TxQueue` now drives broadcast pacing off `structs:block:height-changed` (one tx per block, with a timer fallback when GRASS is offline). Confirmation uses `hybridConfirmStrategy`: it waits briefly for a GRASS `structs.tx.*` message (surfaced to `TxQueue` via `notifyGrassTxConfirmed` in `confirmStrategy.js`, which also dispatches `structs:tx:confirmed`), then falls back to Stargate `getTx` polling.
+
+The `structs:tx:*` lifecycle events carry the same `detail` shape (`{ id, status, typeUrl, hash, height, error }`). They are an alternative to `store.tx.subscribe()` for event-driven consumers; most UI should prefer `subscribe()`. See `docs/TRANSACTIONS.md`.
 
 ## Navigation
 

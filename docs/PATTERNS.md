@@ -65,7 +65,7 @@ Common tasks, recipes-first. Use the scaffolding scripts (`npm run new:*`) for t
    ```
 3. From the view model handler:
    ```js
-   await this.store.tx.enqueue(this.manager.buildDoX(id, v), {
+   const tx = await this.store.tx.enqueue(this.manager.buildDoX(id, v), {
      invalidate: [keys.thing(id)],
      optimisticPatch: (store) => {
        const prev = store.read(keys.thing(id));
@@ -73,7 +73,11 @@ Common tasks, recipes-first. Use the scaffolding scripts (`npm run new:*`) for t
        return () => store.write(keys.thing(id), prev);
      },
    });
+   // enqueue resolves when the tx settles; check the outcome before treating as done.
+   if (tx.status !== "confirmed") return; // failed / cancelled -- patch already rolled back
    ```
+
+`store.tx.enqueue` queues the tx into the **serialized, block-paced** signing queue and resolves when it reaches a terminal state (`confirmed` / `failed` / `cancelled`). The full options contract (`memo`, `invalidate`, `optimisticPatch`, `retryLimit`), monitoring (`subscribe`, `pendingCount`, `list`), timelines (`estimateWait`), and operator actions (`cancel`, `retry`, `reorder`) are documented in **[docs/TRANSACTIONS.md](TRANSACTIONS.md)** -- read it before building any tx-driven UI.
 
 ## Add a GRASS listener
 
@@ -185,6 +189,29 @@ ${ResourceView.render(resource, {
 ```
 
 Default `missing` and `error` rendering is built into ResourceView; only override when you need different copy.
+
+## Show a profile picture (PFP)
+
+Player PFPs are composited client-side from 5 stacked PNG layers driven by the
+`pfp_client_render_attributes` JSON string on a player (`{head,neck,body,arms,background}`,
+1-based indices). When the field is absent, the portrait placeholder renders, so
+nothing breaks if an endpoint omits it.
+
+For a static avatar (table cell, header), use the pure `pfpAvatar` helper:
+
+```js
+import { pfpAvatar } from "@/view_models/components/PfpViewer.js";
+
+// attributes accepts the raw JSON string, a PfpClientRenderAttributes, or null
+pfpAvatar({ attributes: player.pfp_client_render_attributes, size: "sm" }); // "sm" | "md" | "lg"
+```
+
+For an interactive avatar (regenerate before saving), mount a `PfpViewer` or
+keep a draft `PfpClientRenderAttributes` in the view model, then persist via
+`PlayerManager.updatePfpRender(playerId, JSON.stringify(draft))` (enqueues
+`MsgPlayerUpdatePfpClientRenderAttributes`; the chain authorizes the creator).
+See `PlayerProfileController` for the regenerate/save flow. Assets live in
+`public/img/pfp/`; paths are centralized in `@/constants/PfpConstants.js`.
 
 ## Don'ts
 

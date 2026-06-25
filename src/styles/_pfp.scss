@@ -1,0 +1,42 @@
+// Profile-picture (PFP) layered renderer.
+//
+// `.sg-pfp` is a fixed-size, rounded, clipped box; `.pfp-viewer-layer` images
+// are absolutely stacked to fill it (back-to-front paint order is the DOM
+// order emitted by PfpViewer). Adapted from structs-webapp `main.css`.
+
+.sg-pfp {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--sg-surface-subtle, rgba(0, 0, 0, 0.04));
+  vertical-align: middle;
+
+  .pfp-viewer-layer {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: cover;
+  }
+
+  &--sm {
+    width: 24px;
+    height: 24px;
+  }
+
+  &--md {
+    width: 40px;
+    height: 40px;
+  }
+
+  &--lg {
+    width: 96px;
+    height: 96px;
+    border-radius: var(--sg-radius-md, 12px);
+  }
+}

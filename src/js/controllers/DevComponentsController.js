@@ -10,6 +10,7 @@ import { notify } from "../store/notify.js";
 import { bindDataTable, tableBindState } from "../util/bindDataTable.js";
 import { parseTableParams } from "../util/tableFilters.js";
 import { rangeFilterField, statusFilterField } from "../util/tableFilterSchemas.js";
+import { pfpAvatar, PfpViewer } from "../view_models/components/PfpViewer.js";
 
 /**
  * /dev/components -- visual gallery of every reusable view-model component.
@@ -38,6 +39,10 @@ class DevComponentsViewModel extends AbstractViewModel {
     this.tableParams = {};
     /** @type {Record<string, unknown>} */
     this.filteredTableParams = { f: "status:online", "rank.min": 1 };
+    /** Stable random avatars for the gallery demo. */
+    this.demoPfps = Array.from({ length: 5 }, () => new PfpViewer(null, true).pfp);
+    /** Editable avatar for the regenerate demo. */
+    this.editorPfp = new PfpViewer(null, true).pfp;
   }
 
   render() {
@@ -119,6 +124,33 @@ class DevComponentsViewModel extends AbstractViewModel {
             <div class="mt-2">${floatingLabelField({ id: "dev-addr", name: "addr", label: "Address", value: "structs1abc..." })}</div>
           </div>
         </div>
+        <div class="col-md-12">
+          <h6 class="text-secondary text-uppercase small">Profile pictures</h6>
+          <div class="sg-card d-flex flex-column gap-3">
+            <div>
+              <div class="text-secondary small mb-2">Placeholder &amp; sizes</div>
+              <div class="d-flex align-items-end gap-3">
+                ${pfpAvatar({ attributes: null, size: "lg" })}
+                ${pfpAvatar({ attributes: this.editorPfp, size: "sm" })}
+                ${pfpAvatar({ attributes: this.editorPfp, size: "md" })}
+                ${pfpAvatar({ attributes: this.editorPfp, size: "lg" })}
+              </div>
+            </div>
+            <div>
+              <div class="text-secondary small mb-2">Random avatars</div>
+              <div class="d-flex flex-wrap gap-2">
+                ${this.demoPfps.map((p) => pfpAvatar({ attributes: p, size: "md" })).join("")}
+              </div>
+            </div>
+            <div>
+              <div class="text-secondary small mb-2">Editor (regenerate)</div>
+              <div class="d-flex align-items-center gap-3">
+                ${pfpAvatar({ attributes: this.editorPfp, size: "lg" })}
+                <button class="btn btn-light btn-sm" data-action="pfp-regenerate"><i class="bi bi-shuffle me-1"></i>Regenerate</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="col-md-6">
           <h6 class="text-secondary text-uppercase small">Notifications</h6>
           <div class="sg-card d-flex flex-wrap gap-2">
@@ -136,11 +168,25 @@ class DevComponentsViewModel extends AbstractViewModel {
 
   bind() {
     if (!this.container) return;
-    this.container.querySelector('[data-action="toast-info"]')?.addEventListener("click", () => notify.toast("Info", "info"));
-    this.container.querySelector('[data-action="toast-success"]')?.addEventListener("click", () => notify.toast("Success", "success"));
-    this.container.querySelector('[data-action="toast-warning"]')?.addEventListener("click", () => notify.toast("Warning", "warning"));
-    this.container.querySelector('[data-action="toast-danger"]')?.addEventListener("click", () => notify.toast("Danger", "danger"));
-    this.container.querySelector('[data-action="banner"]')?.addEventListener("click", () => notify.banner("This is a banner.", "warning"));
+    this.container
+      .querySelector('[data-action="toast-info"]')
+      ?.addEventListener("click", () => notify.toast("Info", "info"));
+    this.container
+      .querySelector('[data-action="toast-success"]')
+      ?.addEventListener("click", () => notify.toast("Success", "success"));
+    this.container
+      .querySelector('[data-action="toast-warning"]')
+      ?.addEventListener("click", () => notify.toast("Warning", "warning"));
+    this.container
+      .querySelector('[data-action="toast-danger"]')
+      ?.addEventListener("click", () => notify.toast("Danger", "danger"));
+    this.container
+      .querySelector('[data-action="banner"]')
+      ?.addEventListener("click", () => notify.banner("This is a banner.", "warning"));
+    this.container.querySelector('[data-action="pfp-regenerate"]')?.addEventListener("click", () => {
+      this.editorPfp = new PfpViewer(null, true).pfp;
+      this.update();
+    });
 
     const bindLocal = (selector, paramsKey) => {
       const root = this.container?.querySelector(selector);

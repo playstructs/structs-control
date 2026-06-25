@@ -112,6 +112,7 @@ export class AuthManager {
       console.warn("[AuthManager.logout] API logout failed (continuing):", e);
     }
     this.signingClientManager.disconnect();
+    this.store.tx?.clear();
     this.store.session?.clear();
     this.store.clear();
     window.dispatchEvent(new CustomEvent(EVENTS.AUTH_LOGOUT));

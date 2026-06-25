@@ -66,7 +66,7 @@ Guild ID used for probes: `0-1`. Unauthenticated probes; catalog routes that exi
 | `GET` | `/guild/{guildId}/roster` | PlayersController | list of player records |
 | `GET` | `/guild/{guildId}/members/count` | Overview | `{ count }` |
 | `GET` | `/guild/{guildId}/power/stats` | Overview | guild power summary |
-| `GET` | `/player/{playerId}` | PlayerProfile | one player |
+| `GET` | `/player/{playerId}` | PlayerProfile | one player; SPA reads `pfp_client_render_attributes` (JSON string) for the layered avatar (optional — falls back to placeholder) |
 | `GET` | `/player-address/player/{playerId}` | PlayerProfile | addresses on file |
 | `GET` | `/infusion/player/{playerId}` | PlayerProfile | one infusion record |
 | `GET` | `/infusion/list/destination/{reactorId}/page/{n}` | ReactorProfile | all player infusions at reactor |
@@ -102,7 +102,7 @@ The admin SPA keeps a warm in-memory index at `keys.gridIndex()`:
 
 | Method | Path | Replacement |
 | --- | --- | --- |
-| `PUT` | `/player/username` | On-chain `MsgPlayerUpdateName` / `MsgPlayerUpdatePfp` via `store.tx.enqueue` |
+| `PUT` | `/player/username` | On-chain `MsgPlayerUpdateName` / `MsgPlayerUpdatePfp` / `MsgPlayerUpdatePfpClientRenderAttributes` via `store.tx.enqueue` |
 
 Player name and avatar updates are chain transactions only. The SPA no longer calls the removed HTTP endpoint.
 
@@ -116,10 +116,12 @@ The Mint / Redeem page can submit transactions but cannot read current balances.
 
 ### Tx confirmation
 
-`TxQueue` uses hybrid GRASS + Stargate polling. A dedicated read surface would still help:
+`TxQueue` is a serialized, block-paced signing queue (one tx in flight, one per block) that persists queued work to `sessionStorage` across reloads. Confirmation uses hybrid GRASS + Stargate `getTx` polling (see `docs/TRANSACTIONS.md`). A dedicated read surface would still help:
 
-- Either a GRASS subject `structs.tx.confirmed` with `{ hash, code, height }`
+- Either a GRASS subject `structs.tx.confirmed` with `{ hash, code, height }` (lets the queue mark txs confirmed promptly and pace the next broadcast without waiting on `getTx` polling)
 - Or `GET /tx/{hash}` returning `{ confirmed, code, height }`
+
+The queue paces broadcasts off the `block` GRASS subject (`BlockListener` → `structs:block:height-changed`). Without a NATS connection the queue falls back to a timer, so a reliable block-height feed keeps pacing accurate.
 
 ### Overview page
 
