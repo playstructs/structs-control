@@ -407,3 +407,10 @@
     position: static;
   }
 }
+
+@media (min-width: 1728px) {
+  .sg-overview {
+    grid-template-columns: var(--sg-design-overview-main-w) var(--sg-design-details-aside-w);
+    max-width: var(--sg-design-content-w);
+  }
+}

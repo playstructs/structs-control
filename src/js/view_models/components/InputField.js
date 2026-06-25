@@ -1,5 +1,5 @@
 /**
- * Bootstrap floating-label form field. Just a render helper.
+ * Figma input field (571:9225) — label inside the box, 54px single-line / 140px multiline.
  *
  * @param {{
  *   id: string,
@@ -8,26 +8,22 @@
  *   value?: string,
  *   type?: string,
  *   readonly?: boolean,
- *   placeholder?: string,
- *   rows?: number,
  * }} props
  * @returns {string}
  */
-export function floatingLabelField(props) {
+export function designSystemField(props) {
   const type = props.type ?? "text";
   return `
-    <div class="form-floating sg-floating-label">
+    <div class="sg-input-field">
+      <label class="sg-input-field__label" for="${escapeAttr(props.id)}">${escapeHtml(props.label)}</label>
       <input
         type="${escapeAttr(type)}"
         id="${escapeAttr(props.id)}"
         name="${escapeAttr(props.name)}"
-        class="form-control"
-        placeholder="${escapeAttr(props.placeholder ?? props.label)}"
+        class="sg-input-field__control"
         value="${escapeAttr(props.value ?? "")}"
         ${props.readonly ? "readonly" : ""}
       />
-      <label for="${escapeAttr(props.id)}">${escapeHtml(props.label)}</label>
-      <div class="invalid-feedback"></div>
     </div>
   `;
 }
@@ -39,24 +35,19 @@ export function floatingLabelField(props) {
  *   label: string,
  *   value?: string,
  *   readonly?: boolean,
- *   rows?: number,
  * }} props
  * @returns {string}
  */
-export function floatingLabelTextarea(props) {
-  const rows = props.rows ?? 4;
+export function designSystemTextarea(props) {
   return `
-    <div class="form-floating sg-floating-label">
+    <div class="sg-input-field sg-input-field--large">
+      <label class="sg-input-field__label" for="${escapeAttr(props.id)}">${escapeHtml(props.label)}</label>
       <textarea
         id="${escapeAttr(props.id)}"
         name="${escapeAttr(props.name)}"
-        class="form-control sg-floating-label__textarea"
-        placeholder="${escapeAttr(props.label)}"
-        rows="${rows}"
+        class="sg-input-field__control sg-input-field__textarea"
         ${props.readonly ? "readonly" : ""}
       >${escapeHtml(props.value ?? "")}</textarea>
-      <label for="${escapeAttr(props.id)}">${escapeHtml(props.label)}</label>
-      <div class="invalid-feedback"></div>
     </div>
   `;
 }

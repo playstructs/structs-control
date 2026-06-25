@@ -136,7 +136,6 @@ class PlayersListViewModel extends AbstractViewModel {
           emptyMessage: "No players in this guild yet.",
         });
         return tableSectionCard({
-          icon: "bi-people",
           title: "Players",
           subtitle: "Members of this guild.",
           bodyHtml: table.renderHTML(),

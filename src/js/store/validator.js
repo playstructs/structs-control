@@ -80,5 +80,4 @@ export function validate(schema, value, path = "$") {
 /** @type {Record<string, unknown>} */
 export const envelopeSchema = {
   success: "boolean",
-  errors: "array?",
 };

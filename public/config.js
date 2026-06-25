@@ -19,6 +19,6 @@ window.STRUCTS_CONFIG = {
   guildApiUrl: "",
   chainWsUrl: "",
   natsWsUrl: "",
-  defaultGuildId: "",
+  defaultGuildId: "0-1",
   devGallery: "",
 };

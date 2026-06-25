@@ -2,15 +2,18 @@
  * Figma table section — icon + title + subtitle inside the card, DataTable below.
  *
  * @param {{
- *   icon: string,
+ *   icon?: string,
  *   title: string,
  *   subtitle?: string,
  *   bodyHtml: string,
  * }} props
  * @returns {string}
  */
+/** Shared icon for every table section header (Figma table-icon-heading, node 576:74736). */
+export const TABLE_SECTION_ICON = "bi-lightning-charge";
+
 export function tableSectionCard(props) {
-  const { icon, title, subtitle, bodyHtml } = props;
+  const { icon = TABLE_SECTION_ICON, title, subtitle, bodyHtml } = props;
   return `
     <section class="sg-table-section">
       <div class="sg-table-section__header">

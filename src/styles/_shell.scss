@@ -466,3 +466,15 @@
     display: none;
   }
 }
+
+@media (min-width: 1728px) {
+  body {
+    background: var(--sg-surface-darker);
+  }
+
+  .sg-shell {
+    width: 100%;
+    max-width: var(--sg-design-viewport-w);
+    margin-inline: auto;
+  }
+}

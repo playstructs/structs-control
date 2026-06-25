@@ -112,6 +112,7 @@ class LoginViewModel extends AbstractViewModel {
         await this.authManager.login(values.mnemonic.trim(), values.guild_id.trim());
         this.onAuthenticated();
       } catch (err) {
+        console.error("[LoginViewModel] sign-in failed", err);
         notify.fromError(err instanceof Error ? err : new Error(String(err)));
         this.submitting = false;
         this.update();
