@@ -1,3 +1,5 @@
+import { GuildAPIError } from "../errors/GuildAPIError.js";
+
 /**
  * Unified UI notification surface. Three channels:
  *
@@ -118,10 +120,15 @@ function formError(formId, fieldErrors) {
  * @param {Error} err
  */
 function fromError(err) {
-  const message =
-    err && typeof err === "object" && "errors" in err && Array.isArray(err.errors) && err.errors.length
-      ? String(err.errors[0])
-      : err?.message || "Something went wrong.";
+  let message = "Something went wrong.";
+  if (err instanceof GuildAPIError) {
+    message = err.errors?.[0] || err.message || message;
+    if (err.url) message = `${message} (${err.url})`;
+  } else if (err && typeof err === "object" && "errors" in err && Array.isArray(err.errors) && err.errors.length) {
+    message = String(err.errors[0]);
+  } else if (err instanceof Error && err.message) {
+    message = err.message;
+  }
   toast(message, "danger");
 }
 

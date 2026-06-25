@@ -87,7 +87,6 @@ class ReactorsViewModel extends AbstractViewModel {
         ${ResourceView.render(yours, {
           success: (rows) =>
             tableSectionCard({
-              icon: "bi-lightning-charge",
               title: "Your Reactors",
               subtitle: "Reactors in your guild.",
               bodyHtml: renderReactorTable({
@@ -105,7 +104,6 @@ class ReactorsViewModel extends AbstractViewModel {
         ${ResourceView.render(network, {
           success: (rows) =>
             tableSectionCard({
-              icon: "bi-diagram-3",
               title: "Network Reactors",
               subtitle: "Reactors in the network.",
               bodyHtml: renderReactorTable({

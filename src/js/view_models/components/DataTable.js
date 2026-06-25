@@ -191,10 +191,10 @@ export class DataTable extends AbstractViewModelComponent {
       searchCols.length > 0
         ? `
             <div class="dropdown sg-datatable__scope-dropdown">
-              <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-role="scope-toggle">
+              <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" data-role="scope-toggle">
                 ${escapeHtml(activeFieldLabel)} <i class="bi bi-caret-down-fill"></i>
               </button>
-              <ul class="dropdown-menu dropdown-menu-end">
+              <ul class="dropdown-menu">
                 ${searchCols
                   .map(
                     (c) =>

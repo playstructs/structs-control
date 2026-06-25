@@ -1,0 +1,378 @@
+// Guild Details page + floating edit/save bar (Figma 1920:64585, bottom-edit-bar 1:9942).
+
+.sg-guild-details {
+  padding-bottom: 96px;
+}
+
+.sg-guild-details__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 600px) minmax(280px, 450px);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .sg-guild-details__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sg-guild-details__card {
+  background: var(--sg-surface);
+  border: 1px solid var(--sg-border-lighter);
+  border-radius: var(--sg-radius-sm);
+  padding: 40px 32px;
+}
+
+.sg-guild-details__section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.sg-guild-details__section-title {
+  margin: 0;
+  font-size: var(--sg-type-headline-size);
+  font-weight: 600;
+  line-height: var(--sg-type-headline-lh);
+  color: var(--sg-text-title);
+}
+
+.sg-guild-details__menu {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-surface);
+  color: var(--sg-text-body);
+}
+
+.sg-guild-details__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.sg-guild-details__permissions {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-block: 12px;
+}
+
+.sg-guild-details__permissions-title {
+  margin: 0;
+  font-size: var(--sg-type-subtitle-size);
+  font-weight: 700;
+  line-height: var(--sg-type-subtitle-lh);
+  color: var(--sg-text-body);
+}
+
+.sg-guild-details__permissions-copy {
+  margin: 0;
+  font-size: var(--sg-type-subtitle-size);
+  line-height: var(--sg-type-subtitle-lh);
+  color: var(--sg-text-body);
+}
+
+.sg-guild-details__permission-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sg-guild-details__permission-label {
+  margin: 0;
+  font-size: var(--sg-type-subtitle-size);
+  line-height: var(--sg-type-subtitle-lh);
+  color: var(--sg-text-body);
+}
+
+.sg-guild-details__select {
+  width: fit-content;
+  min-width: 140px;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--sg-border-default);
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-surface);
+  color: var(--sg-text-body);
+  font-size: var(--sg-type-subtitle-size);
+  font-weight: 600;
+  line-height: var(--sg-type-subtitle-lh);
+}
+
+.sg-guild-details__logo-block {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.sg-guild-details__logo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sg-guild-details__logo-preview {
+  width: 85px;
+  height: 114px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--sg-surface-default);
+}
+
+.sg-guild-details__logo-preview[hidden] {
+  display: none;
+}
+
+.sg-guild-details__logo-url {
+  max-width: 360px;
+}
+
+.sg-guild-details__social-title {
+  margin: 0 0 28px;
+  font-size: var(--sg-type-headline-size);
+  font-weight: 600;
+  line-height: var(--sg-type-headline-lh);
+  color: var(--sg-text-title);
+}
+
+.sg-guild-details__library {
+  background: var(--sg-surface);
+  border: 1px solid var(--sg-border-lighter);
+  border-radius: var(--sg-radius-sm);
+  padding: 40px 32px;
+}
+
+.sg-guild-details__library-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 85px);
+  gap: 16px 32px;
+  justify-content: center;
+  margin-top: 52px;
+}
+
+.sg-guild-details__library-thumb {
+  width: 85px;
+  height: 114px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: var(--sg-surface-default);
+  overflow: hidden;
+  cursor: pointer;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &.is-selected {
+    border-color: var(--sg-border-valid-blue);
+  }
+}
+
+// Figma input field — label inside box (571:9225)
+.sg-input-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 54px;
+  padding: 4px 12px 8px;
+  border: 1px solid var(--sg-border);
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-surface);
+}
+
+.sg-input-field--large {
+  min-height: 140px;
+}
+
+.sg-input-field__label {
+  margin: 0;
+  font-size: var(--sg-type-subtitle-size);
+  font-weight: 400;
+  line-height: var(--sg-type-subtitle-lh);
+  color: var(--sg-text-caption);
+}
+
+.sg-input-field__control {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: var(--sg-type-body-size);
+  font-weight: 400;
+  line-height: var(--sg-type-body-lh);
+  color: var(--sg-text-title);
+
+  &:focus {
+    outline: none;
+    box-shadow: none;
+  }
+}
+
+.sg-input-field__textarea {
+  flex: 1 1 auto;
+  min-height: 96px;
+  resize: vertical;
+}
+
+.sg-floating-label__textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.sg-guild-details__library-empty {
+  margin: 52px 0 0;
+  font-size: var(--sg-type-subtitle-size);
+  line-height: var(--sg-type-subtitle-lh);
+  color: var(--sg-text-caption);
+  text-align: center;
+}
+
+// Floating save / cancel bar — Figma bottom-edit-bar (1:9942)
+// Centered in the main content column (right of sidebar), not full viewport.
+.sg-edit-save-bar {
+  --sg-edit-bar-inset-x: var(--sg-shell-gutter);
+  --sg-edit-bar-content-w: calc(100vw - var(--sg-edit-bar-sidebar-w));
+  --sg-edit-bar-max-w: min(
+    var(--sg-design-edit-bar-w),
+    calc(var(--sg-edit-bar-content-w) - 2 * var(--sg-edit-bar-inset-x))
+  );
+  position: fixed;
+  bottom: 24px;
+  left: calc(var(--sg-edit-bar-sidebar-w) + var(--sg-edit-bar-content-w) / 2);
+  z-index: var(--sg-z-toast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: var(--sg-edit-bar-max-w);
+  min-height: 60px;
+  padding: 14px 32px;
+  border-radius: 10px;
+  background: #424562;
+  box-shadow: var(--sg-shadow-lg);
+  font-family: var(--sg-font-family);
+  -webkit-font-smoothing: antialiased;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(-50%, calc(100% + 48px));
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.28s ease,
+    visibility 0.35s;
+
+  &.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
+  }
+}
+
+body:has(.sg-shell[data-sidebar="expanded"]) .sg-edit-save-bar {
+  --sg-edit-bar-sidebar-w: var(--sg-shell-sidebar-expanded-w);
+}
+
+// Message: Inter Medium 16px / 1.3 (node 1:9943)
+.sg-edit-save-bar__message {
+  margin: 0;
+  flex: 1 1 auto;
+  font-family: var(--sg-font-family);
+  font-size: var(--sg-type-body-size);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--sg-edit-bar-text);
+  text-align: center;
+}
+
+.sg-edit-save-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+// Buttons: Inter Semi Bold 16px / 1.3 (nodes 1:9944, 1:9945)
+.sg-edit-save-bar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 33px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--sg-radius-xs);
+  font-family: var(--sg-font-family);
+  font-size: var(--sg-type-body-size);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--sg-edit-bar-text);
+  white-space: nowrap;
+}
+
+.sg-edit-save-bar__btn--save {
+  background: #3fa836;
+  border-color: #3fa836;
+}
+
+.sg-edit-save-bar__btn--cancel {
+  background: #99a9cf;
+  border-color: #99a9cf;
+}
+
+body.sg-has-edit-save-bar .sg-page__body {
+  padding-bottom: 88px;
+}
+
+@media (max-width: 576px) {
+  .sg-edit-save-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .sg-edit-save-bar__message {
+    text-align: left;
+  }
+
+  .sg-edit-save-bar__actions {
+    justify-content: stretch;
+
+    .sg-edit-save-bar__btn {
+      flex: 1 1 0;
+    }
+  }
+}
+
+@media (min-width: 1728px) {
+  .sg-guild-details__layout {
+    grid-template-columns: var(--sg-design-details-main-w) var(--sg-design-details-aside-w);
+    max-width: calc(var(--sg-design-details-main-w) + var(--sg-design-details-aside-w) + 16px);
+  }
+
+  .sg-edit-save-bar {
+    --sg-edit-bar-content-w: var(--sg-design-content-w);
+    --sg-edit-bar-max-w: min(
+      var(--sg-design-edit-bar-w),
+      calc(var(--sg-design-content-w) - 2 * var(--sg-edit-bar-inset-x))
+    );
+    left: calc(
+      (100vw - var(--sg-design-viewport-w)) / 2 + var(--sg-edit-bar-sidebar-w) +
+        var(--sg-edit-bar-content-w) / 2
+    );
+    width: var(--sg-edit-bar-max-w);
+  }
+}

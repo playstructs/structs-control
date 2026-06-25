@@ -2,6 +2,25 @@ import { GuildAPIError } from "../errors/GuildAPIError.js";
 import { validate, envelopeSchema } from "../store/validator.js";
 
 /**
+ * Symfony returns `errors` as a string[] or a keyed object
+ * (e.g. `{ signature_validation_failed: "Invalid signature" }`).
+ *
+ * @param {unknown} errors
+ * @param {string} [fallback]
+ * @returns {string[]}
+ */
+function normalizeApiErrors(errors, fallback = "Request failed") {
+  if (Array.isArray(errors) && errors.length) return errors.map(String);
+  if (errors && typeof errors === "object") {
+    const values = Object.values(errors)
+      .map(String)
+      .filter(Boolean);
+    if (values.length) return values;
+  }
+  return [fallback];
+}
+
+/**
  * HTTP request wrapper for the Guild API.
  *
  * Differences from the structs-webapp version:
@@ -83,14 +102,17 @@ export class JsonAjaxer {
     }
 
     let json;
+    const rawText = await response.text();
     try {
-      json = await response.json();
+      json = rawText ? JSON.parse(rawText) : null;
     } catch {
-      throw new GuildAPIError(`Invalid JSON from ${path}`, { status: response.status, url });
+      const htmlHint = rawText.match(/<!--\s*([^<]{10,240}?)\s*(?:\(500 Internal Server Error\))?-->/i)?.[1]?.trim();
+      const message = htmlHint || `Invalid JSON from ${path} (HTTP ${response.status})`;
+      throw new GuildAPIError(message, { status: response.status, url });
     }
 
     if (!response.ok) {
-      const errors = Array.isArray(json?.errors) ? json.errors : [response.statusText || "HTTP error"];
+      const errors = normalizeApiErrors(json?.errors, response.statusText || "HTTP error");
       throw new GuildAPIError(errors[0], { status: response.status, errors, url });
     }
 
@@ -103,7 +125,7 @@ export class JsonAjaxer {
     }
 
     if (!json.success) {
-      const errors = Array.isArray(json.errors) && json.errors.length ? json.errors : ["Request failed"];
+      const errors = normalizeApiErrors(json.errors);
       throw new GuildAPIError(errors[0], { status: response.status, errors, url });
     }
 

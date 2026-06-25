@@ -92,6 +92,18 @@
   --sg-shell-pillnav-h: 48px;
   --sg-shell-gutter: 24px;
 
+  // --- Design canvas — Figma "MacBook Pro 16\" - 12" (1728×1117) ---
+  // Primary admin viewport; use @media (min-width: 1728px) for fixed Figma dimensions.
+  --sg-design-viewport-w: 1728px;
+  --sg-design-viewport-h: 1117px;
+  --sg-design-content-w: calc(var(--sg-design-viewport-w) - var(--sg-shell-sidebar-collapsed-w)); // 1656px
+  --sg-design-overview-main-w: calc(var(--sg-design-content-w) - 450px - 16px); // 1190px
+  --sg-design-details-main-w: 600px;
+  --sg-design-details-aside-w: 450px;
+  --sg-design-edit-bar-w: 1005px;
+  --sg-edit-bar-text: #ffffff; // Figma theme-colors/$white on Void Grey bar (1:9942)
+  --sg-edit-bar-sidebar-w: var(--sg-shell-sidebar-collapsed-w);
+
   // --- Radius (Figma Radius/*) ---
   --sg-radius-xs: 4px; // Radius/XS
   --sg-radius-sm: 6px;
@@ -130,4 +142,10 @@
 
   // Figma Filters sidebar — ~32% viewport, capped at 560px (node 1122:30348)
   --sg-filter-panel-width: clamp(300px, 32vw, 560px);
+}
+
+@media (min-width: 1728px) {
+  :root {
+    --sg-filter-panel-width: 560px;
+  }
 }
