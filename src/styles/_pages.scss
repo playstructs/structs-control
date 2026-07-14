@@ -103,6 +103,10 @@
 
 // -- Activity / transaction queue --------------------------------------------
 
+.sg-activity-feed-card {
+  max-width: 720px;
+}
+
 .sg-tx-section {
   &__title {
     display: flex;
@@ -112,6 +116,12 @@
     font-weight: 600;
     color: var(--sg-text-primary);
     margin-bottom: 8px;
+  }
+
+  &__hint {
+    margin: -4px 0 12px;
+    font-size: var(--sg-type-subtitle-size, 0.8125rem);
+    color: var(--sg-text-subtitle, var(--sg-text-secondary));
   }
 
   &__count {

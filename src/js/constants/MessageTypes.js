@@ -54,6 +54,11 @@ export const MSG_TYPES = Object.freeze({
   REACTOR_INFUSE: "/structs.structs.MsgReactorInfuse",
   REACTOR_DEFUSE: "/structs.structs.MsgReactorDefuse",
   REACTOR_BEGIN_MIGRATION: "/structs.structs.MsgReactorBeginMigration",
+
+  // Permissions
+  PERMISSION_SET_ON_OBJECT: "/structs.structs.MsgPermissionSetOnObject",
+  PERMISSION_GRANT_ON_OBJECT: "/structs.structs.MsgPermissionGrantOnObject",
+  PERMISSION_REVOKE_ON_OBJECT: "/structs.structs.MsgPermissionRevokeOnObject",
 });
 
 /**

@@ -27,8 +27,11 @@ export class DataTable extends AbstractViewModelComponent {
    *   }>,
    *   rows: any[],
    *   keyFn?: (row: any) => string,
+   *   getRowClass?: (row: any) => string,
    *   onRowClick?: (row: any) => string,
    *   selectable?: boolean,
+   *   selectionMode?: "checkbox" | "radio",
+   *   selectedKeys?: Set<string> | string[],
  *   sort?: string,
  *   q?: string,
  *   field?: string, // URL-synced search scope (`?field=col`); preferred over searchField
@@ -80,7 +83,11 @@ export class DataTable extends AbstractViewModelComponent {
       hideSearch = false,
       embedded = false,
       selectable = false,
+      selectionMode = "checkbox",
+      selectedKeys,
     } = this.props;
+
+    const selected = selectedKeys instanceof Set ? selectedKeys : new Set(selectedKeys ?? []);
 
     const searchCols =
       searchColumns ??
@@ -150,16 +157,20 @@ export class DataTable extends AbstractViewModelComponent {
       .join("");
 
     const checkHeader = selectable
-      ? `<th class="sg-datatable__check-col"><input type="checkbox" class="form-check-input" data-role="select-all" aria-label="Select all rows" /></th>`
+      ? `<th class="sg-datatable__check-col" aria-label="Select"></th>`
       : "";
+
+    const inputType = selectionMode === "radio" ? "radio" : "checkbox";
+    const inputName = selectionMode === "radio" ? `${id}-select` : undefined;
 
     const tbody = pageRows.length
       ? pageRows
           .map((row) => {
             const path = this.props.onRowClick?.(row);
             const rowKey = this.props.keyFn?.(row) ?? "";
+            const rowClass = this.props.getRowClass?.(row) ?? "";
             const checkCell = selectable
-              ? `<td class="sg-datatable__check-col"><input type="checkbox" class="form-check-input" data-role="row-select" data-key="${escapeHtml(rowKey)}" aria-label="Select row" /></td>`
+              ? `<td class="sg-datatable__check-col"><input type="${inputType}" class="form-check-input" data-role="row-select" data-key="${escapeHtml(rowKey)}" name="${inputName ? escapeAttr(inputName) : ""}" ${selected.has(rowKey) ? "checked" : ""} aria-label="Select row" /></td>`
               : "";
             const cells = columns
               .map((c) => {
@@ -169,7 +180,7 @@ export class DataTable extends AbstractViewModelComponent {
                 return `<td class="${align}">${html}</td>`;
               })
               .join("");
-            return `<tr data-key="${escapeHtml(rowKey)}" ${path ? `data-href="${escapeHtml(path)}"` : ""} class="${path ? "sg-row-link" : ""}">${checkCell}${cells}</tr>`;
+            return `<tr data-key="${escapeHtml(rowKey)}" ${path ? `data-href="${escapeHtml(path)}"` : ""} class="${path ? "sg-row-link" : ""} ${escapeAttr(rowClass)}">${checkCell}${cells}</tr>`;
           })
           .join("")
       : `<tr class="sg-datatable__empty-row"><td colspan="${columns.length + (selectable ? 1 : 0)}">${TableEmptyState.renderHTML({

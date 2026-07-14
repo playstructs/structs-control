@@ -21,6 +21,10 @@ import {
   MsgAllocationDelete,
   MsgReactorInfuse,
   MsgReactorDefuse,
+  MsgSubstationPlayerMigrate,
+  MsgPermissionSetOnObject,
+  MsgPermissionGrantOnObject,
+  MsgPermissionRevokeOnObject,
 } from "../ts/structs.structs/types/structs/structs/tx.js";
 import { allocationTypeFromJSON } from "../ts/structs.structs/types/structs/structs/keys.js";
 import { MSG_TYPES } from "../constants/MessageTypes.js";
@@ -266,6 +270,67 @@ export function buildReactorDefuse(body) {
       delegatorAddress: body.delegatorAddress,
       validatorAddress: body.validatorAddress,
       amount: { denom: "ualpha", amount: alphaToUalpha(body.amountAlpha) },
+    }),
+  };
+}
+
+/**
+ * @param {{ creator: string, substationId: string, playerIds: string[] }} body
+ */
+export function buildSubstationPlayerMigrate(body) {
+  const playerIds = (body.playerIds ?? []).map(String).filter(Boolean);
+  if (!playerIds.length) throw new Error("At least one player is required for migration");
+  return {
+    typeUrl: MSG_TYPES.SUBSTATION_PLAYER_MIGRATE,
+    value: MsgSubstationPlayerMigrate.fromPartial({
+      creator: creatorOrThrow(body.creator),
+      substationId: body.substationId,
+      playerId: playerIds,
+    }),
+  };
+}
+
+/**
+ * @param {{ creator: string, objectId: string, playerId: string, permissions: number }} body
+ */
+export function buildPermissionSetOnObject(body) {
+  return {
+    typeUrl: MSG_TYPES.PERMISSION_SET_ON_OBJECT,
+    value: MsgPermissionSetOnObject.fromPartial({
+      creator: creatorOrThrow(body.creator),
+      objectId: String(body.objectId),
+      playerId: String(body.playerId),
+      permissions: Number(body.permissions) || 0,
+    }),
+  };
+}
+
+/**
+ * @param {{ creator: string, objectId: string, playerId: string, permissions: number }} body
+ */
+export function buildPermissionGrantOnObject(body) {
+  return {
+    typeUrl: MSG_TYPES.PERMISSION_GRANT_ON_OBJECT,
+    value: MsgPermissionGrantOnObject.fromPartial({
+      creator: creatorOrThrow(body.creator),
+      objectId: String(body.objectId),
+      playerId: String(body.playerId),
+      permissions: Number(body.permissions) || 0,
+    }),
+  };
+}
+
+/**
+ * @param {{ creator: string, objectId: string, playerId: string, permissions: number }} body
+ */
+export function buildPermissionRevokeOnObject(body) {
+  return {
+    typeUrl: MSG_TYPES.PERMISSION_REVOKE_ON_OBJECT,
+    value: MsgPermissionRevokeOnObject.fromPartial({
+      creator: creatorOrThrow(body.creator),
+      objectId: String(body.objectId),
+      playerId: String(body.playerId),
+      permissions: Number(body.permissions) || 0,
     }),
   };
 }

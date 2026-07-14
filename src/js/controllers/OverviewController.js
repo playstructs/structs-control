@@ -8,6 +8,8 @@ import {
 } from "../view_models/components/OverviewCard.js";
 import { keys } from "../store/keys.js";
 import { formatUnitOrDash } from "../util/unitDisplay.js";
+import { buildEntityLookup } from "../util/entityLookup.js";
+import { buildOverviewActivityItems } from "../util/activityFeed.js";
 
 export class OverviewController extends AbstractController {
   /**
@@ -15,12 +17,18 @@ export class OverviewController extends AbstractController {
    *   store: import("../store/Store.js").Store,
    *   layout: import("../view_models/LayoutViewModel.js").LayoutViewModel,
    *   guildManager: import("../managers/GuildManager.js").GuildManager,
+   *   substationManager?: import("../managers/SubstationManager.js").SubstationManager,
+   *   reactorManager?: import("../managers/ReactorManager.js").ReactorManager,
+   *   infusionManager?: import("../managers/InfusionManager.js").InfusionManager,
    * }} deps
    */
   constructor(deps) {
     super("Overview", deps.store);
     this.layout = deps.layout;
     this.guildManager = deps.guildManager;
+    this.substationManager = deps.substationManager;
+    this.reactorManager = deps.reactorManager;
+    this.infusionManager = deps.infusionManager;
   }
 
   async activate(_page, _params) {
@@ -29,6 +37,10 @@ export class OverviewController extends AbstractController {
     void this.guildManager.fetchGuild(session.guildId);
     void this.guildManager.fetchMembersCount(session.guildId);
     void this.guildManager.fetchPowerStats(session.guildId);
+    void this.guildManager.fetchRoster(session.guildId);
+    void this.substationManager?.fetchList();
+    void this.reactorManager?.fetchList(session.guildId);
+    void this.infusionManager?.fetchGuildInfusions(session.guildId);
 
     const vm = new OverviewViewModel({ store: this.store, guildId: session.guildId });
     this.layout.mountContent(vm);
@@ -50,6 +62,10 @@ class OverviewViewModel extends AbstractViewModel {
     this.subscribe(this.store, keys.guild(this.guildId));
     this.subscribe(this.store, keys.guildMembersCount(this.guildId));
     this.subscribe(this.store, keys.guildPowerStats(this.guildId));
+    this.subscribe(this.store, keys.substationList());
+    this.subscribe(this.store, keys.guildRoster(this.guildId));
+    this.subscribe(this.store, keys.reactorList(this.guildId));
+    this.subscribe(this.store, keys.guildInfusions(this.guildId));
     if (this.store.tx) {
       this._unsubs.push(this.store.tx.subscribe(() => this.update()));
     }
@@ -119,10 +135,14 @@ class OverviewViewModel extends AbstractViewModel {
         ${overviewCardHeader({
           title: "Activity",
           subtitle: "Your recent activity",
-          showMenu: false,
+          showMenu: true,
         })}
         <div class="sg-overview-card__body sg-overview-card__body--activity">
-          ${renderActivityFeed(this.store.tx?.list() ?? [])}
+          ${renderActivityFeed(
+            this.store.tx?.list() ?? [],
+            this.store.read(keys.guildInfusions(this.guildId)),
+            buildEntityLookup(this.store),
+          )}
         </div>
       </section>
     `;
@@ -147,64 +167,26 @@ function renderLeaderboard() {
 
 /**
  * @param {import("../store/TxQueue.js").TxRecord[]} records
+ * @param {import("../store/Resource.js").Resource<unknown>} infusionRes
+ * @param {import("../util/entityLookup.js").EntityLookup} lookup
  */
-function renderActivityFeed(records) {
+function renderActivityFeed(records, infusionRes, lookup) {
   const seeAll = overviewActivitySeeAll();
+  const infusions =
+    infusionRes.status === "success" && Array.isArray(infusionRes.data) ? infusionRes.data : [];
 
-  if (!records.length) {
+  if (!records.length && !infusions.length) {
+    if (infusionRes.status === "loading" || infusionRes.status === "idle") {
+      return `<div class="sg-loading"><div class="spinner-border spinner-border-sm text-primary"></div></div>`;
+    }
     return `
       <p class="sg-overview-empty">No recent activity this session.</p>
       ${seeAll}
     `;
   }
 
-  const recent = [...records].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 6);
-  return `${recent.map((record) => txToActivityItem(record)).join("")}${seeAll}`;
-}
-
-/**
- * @param {import("../store/TxQueue.js").TxRecord} record
- */
-function txToActivityItem(record) {
-  const shortType = record.typeUrl.replace(/^.*\./, "");
-  const { icon, tone } = txIcon(record.status);
-  const body = [
-    statusLabel(record.status),
-    record.hash ? `${record.hash.slice(0, 12)}…` : null,
-    record.error ? record.error : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
-  return overviewActivityItem({
-    icon,
-    iconTone: tone,
-    title: shortType,
-    time: formatRelativeTime(record.updatedAt),
-    body,
-  });
-}
-
-/** @param {import("../store/TxQueue.js").TxStatus} status */
-function txIcon(status) {
-  if (status === "confirmed") return { icon: "bi-check-circle", tone: /** @type {const} */ ("success") };
-  if (status === "failed") return { icon: "bi-x-circle", tone: /** @type {const} */ ("error") };
-  if (status === "cancelled") return { icon: "bi-slash-circle", tone: /** @type {const} */ ("info") };
-  if (status === "confirming") return { icon: "bi-hourglass-split", tone: /** @type {const} */ ("warning") };
-  return { icon: "bi-arrow-repeat", tone: /** @type {const} */ ("info") };
-}
-
-/** @param {import("../store/TxQueue.js").TxStatus} status */
-function statusLabel(status) {
-  const labels = {
-    pending: "Queued",
-    signing: "Signing",
-    confirming: "Confirming",
-    confirmed: "Confirmed",
-    failed: "Failed",
-    cancelled: "Cancelled",
-  };
-  return labels[status] ?? status;
+  const items = buildOverviewActivityItems(records, /** @type {any[]} */ (infusions), lookup, { limit: 6 });
+  return `${items.map((item) => overviewActivityItem(item)).join("")}${seeAll}`;
 }
 
 /**
@@ -227,15 +209,3 @@ function pickScalar(data, keys) {
   return pickAlphaAmount(data, keys);
 }
 
-/** @param {number} ts */
-function formatRelativeTime(ts) {
-  const delta = Date.now() - ts;
-  const minutes = Math.floor(delta / 60_000);
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(ts).toLocaleDateString();
-}

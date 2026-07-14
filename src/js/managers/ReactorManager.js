@@ -65,6 +65,8 @@ export class ReactorManager {
     if (body.reactorId) {
       invalidate.push(keys.reactor(body.reactorId), keys.reactorInfusion(body.reactorId));
     }
+    const guildId = this.store.session?.data?.guildId;
+    if (guildId) invalidate.push(keys.guildInfusions(guildId));
     await this.store.tx?.enqueue(this.buildInfuse(body), { invalidate });
   }
 
@@ -77,6 +79,8 @@ export class ReactorManager {
     if (body.reactorId) {
       invalidate.push(keys.reactor(body.reactorId), keys.reactorInfusion(body.reactorId));
     }
+    const guildId = this.store.session?.data?.guildId;
+    if (guildId) invalidate.push(keys.guildInfusions(guildId));
     await this.store.tx?.enqueue(this.buildDefuse(body), { invalidate });
   }
 }

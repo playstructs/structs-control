@@ -105,7 +105,7 @@ Full recipes in `docs/PATTERNS.md`. Architecture in `docs/ARCHITECTURE.md`. Even
 
 ```bash
 npm install
-STRUCTS_GUILD_API_URL=https://guild.example.com npm run dev   # localhost:8081
+STRUCTS_GUILD_API_URL=https://guild.example.com npm run dev   # localhost:8092
 npm run build                                                 # production to dist/
 npm run lint                                                  # eslint + prettier
 npm run typecheck                                             # tsc on JSDoc
@@ -127,7 +127,7 @@ Single [`Dockerfile`](Dockerfile) published as `structs/structs-control`. Runtim
 | Mode | Env | Listens | Use case |
 | --- | --- | --- | --- |
 | `prod` (default) | `STRUCTS_CONTROL_MODE=prod` | `:80` | Static nginx serving baked `dist/` |
-| `dev` | `STRUCTS_CONTROL_MODE=dev` | `:8081` | webpack-dev-server + HMR (bind-mount source) |
+| `dev` | `STRUCTS_CONTROL_MODE=dev` | `:8092` | webpack-dev-server + HMR (bind-mount source) |
 
 ```bash
 docker build -t structs/structs-control:latest .
@@ -136,7 +136,7 @@ docker build -t structs/structs-control:latest .
 docker run -p 8080:80 structs/structs-control:latest
 
 # Dev with live source
-docker run -p 8081:8081 -v "$(pwd):/app" -v /app/node_modules \
+docker run -p 8092:8092 -v "$(pwd):/app" -v /app/node_modules \
   -e STRUCTS_CONTROL_MODE=dev \
   -e STRUCTS_DEV_PROXY_TARGET=http://host.docker.internal:8080 \
   -e CHOKIDAR_USEPOLLING=true \

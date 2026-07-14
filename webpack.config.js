@@ -23,7 +23,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  *                            Defaults to http://localhost:8080 (Docker Symfony API).
  *   STRUCTS_GUILD_API_HOST   Host header to send through the dev proxy (DNS workaround)
  *   STRUCTS_DEV_GALLERY      "1" to mount /dev/components and /dev/tests routes
- *   CHOKIDAR_USEPOLLING      "true" for file watching inside Docker (macOS bind mounts)
+ *   STRUCTS_DEV_PORT          dev-only: webpack-dev-server listen port (default 8092).
+ *                            Avoid 8765 (presence) and 8081 (passage) on shared dev machines.
  *
  * Docker (STRUCTS_CONTROL_MODE=dev|prod): see Dockerfile + docker/entrypoint.sh
  *
@@ -39,6 +40,7 @@ export default (_env, argv) => {
   const devProxyTarget = process.env.STRUCTS_DEV_PROXY_TARGET || process.env.STRUCTS_GUILD_API_URL || "http://localhost:8080";
   const apiHost = process.env.STRUCTS_GUILD_API_HOST || "";
   const devGallery = process.env.STRUCTS_DEV_GALLERY === "1";
+  const devPort = Number(process.env.STRUCTS_DEV_PORT) || 8092;
 
   return {
     entry: {
@@ -162,7 +164,7 @@ export default (_env, argv) => {
       allowedHosts: "all",
       static: { directory: path.resolve(__dirname, "public") },
       historyApiFallback: true,
-      port: 8081,
+      port: devPort,
       hot: true,
       client: { overlay: { errors: true, warnings: false } },
       proxy: !isProd

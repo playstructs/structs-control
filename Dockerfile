@@ -27,6 +27,6 @@ RUN chmod +x /usr/local/bin/structs-control-entrypoint
 
 ENV STRUCTS_CONTROL_MODE=prod
 
-EXPOSE 80 8081
+EXPOSE 80 8092
 
 ENTRYPOINT ["structs-control-entrypoint"]

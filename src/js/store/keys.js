@@ -21,6 +21,7 @@ export const keys = {
   guildPowerStats: (guildId) => Object.freeze(["guild", String(guildId), "power-stats"]),
   guildMembersCount: (guildId) => Object.freeze(["guild", String(guildId), "members-count"]),
   guildsDirectory: () => Object.freeze(["guild", "directory"]),
+  guildInfusions: (guildId) => Object.freeze(["guild", String(guildId), "infusions"]),
 
   player: (playerId) => Object.freeze(["player", String(playerId)]),
   playerInfusion: (playerId) => Object.freeze(["player", String(playerId), "infusion"]),
@@ -31,17 +32,19 @@ export const keys = {
   substation: (substationId) => Object.freeze(["substation", String(substationId)]),
   substationList: () => Object.freeze(["substation", "list"]),
   substationPlayers: (substationId) => Object.freeze(["substation", String(substationId), "players"]),
+  energyGridPlayers: (guildId) => Object.freeze(["substation", "energy-grid-players", String(guildId)]),
+  objectPermissions: (objectId) => Object.freeze(["permission", "object", String(objectId)]),
 
   reactor: (reactorId) => Object.freeze(["reactor", String(reactorId)]),
   reactorList: (guildId) => Object.freeze(["reactor", "list", String(guildId ?? "")]),
   reactorNetwork: () => Object.freeze(["reactor", "network"]),
+  reactorInfusion: (reactorId) => Object.freeze(["reactor", String(reactorId), "infusion"]),
 
   membershipApplications: (guildId) => Object.freeze(["guild", String(guildId), "membership-applications"]),
   providerList: () => Object.freeze(["provider", "list"]),
   agreementList: (guildId) => Object.freeze(["agreement", "list", String(guildId)]),
 
   statRange: (metric, objectKey) => Object.freeze(["stat", String(metric), String(objectKey)]),
-  reactorInfusion: (reactorId) => Object.freeze(["reactor", String(reactorId), "infusion"]),
 
   allocation: (allocationId) => Object.freeze(["allocation", String(allocationId)]),
   allocationList: () => Object.freeze(["allocation", "list"]),

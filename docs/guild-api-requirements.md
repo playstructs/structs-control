@@ -129,7 +129,22 @@ The Guild Overview screen (Figma Flows `1920:64583`) needs richer read surfaces 
 
 - `GET /guild/{guildId}/power/stats` — document response shape; SPA expects optional fields for total alpha infused and period deltas (`total_alpha_infused`, `last_7_days`, `last_24_hours`, membership deltas).
 - `GET /guild/leaderboard` (or equivalent) — top guilds ranked by total alpha infused with period metrics for the Community Leaderboard card.
-- `GET /guild/{guildId}/activity` (or GRASS feed) — guild-scoped activity events for the Overview Activity panel (tx queue is session-only today).
+- `GET /guild/{guildId}/activity` (or GRASS feed) — guild-scoped activity events for the Overview Activity panel (tx queue is session-only; SPA currently merges session txs with guild reactor infusion rows as a stopgap).
+
+### Energy Grid
+
+The Energy Grid screen (Figma Flows `1920:64579`) uses catalog data today. Gaps:
+
+- `GET /substation/{id}/stats/24h` (or GRASS) — substation load deltas for the "Biggest Drop (last 24hr)" activity card (SPA falls back to highest current load).
+- `GET /player/list/guild/{guildId}/page/` with `substation_id`, `load`, `capacity` — would replace aggregating `GET /player/list/substation/{id}/page/` across every substation for Player Lookup (guild roster does not include `substation_id`).
+
+### Energy Permissions
+
+The Energy Permissions screen (Figma Flows `1902:64550`) lists guild players with per-substation object permission toggles (Play / Update / Delete / Grid / Assets / Associations / Permissions). Writes use `MsgPermissionSetOnObject` / Grant / Revoke.
+
+Gaps:
+
+- `GET /permission/object/{objectId}/page/` — catalog of `PermissionRecord { permissionId, value }` (id shape `{objectId}@{playerId}`). Optional today; SPA shows roster with empty masks and still enqueues chain txs.
 
 ## CORS specifically for `/auth/login`
 

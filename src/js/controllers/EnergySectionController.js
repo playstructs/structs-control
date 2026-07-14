@@ -6,7 +6,6 @@ const PAGES = {
   overview: { title: "Overview", subtitle: "Energy snapshot for this guild." },
   details: { title: "Details", subtitle: "Energy entity settings and metadata." },
   validators: { title: "Validators", subtitle: "Validators connected to guild reactors." },
-  permissions: { title: "Permissions", subtitle: "Who can manage energy infrastructure." },
   market: { title: "Energy Market", subtitle: "Buy and sell energy on the open market." },
 };
 

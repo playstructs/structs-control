@@ -1,5 +1,6 @@
+import { GuildAPIError } from "../errors/GuildAPIError.js";
 import { keys } from "../store/keys.js";
-import { MSG_TYPES } from "../constants/MessageTypes.js";
+import { buildSubstationPlayerMigrate } from "../util/txMessages.js";
 
 export class SubstationManager {
   /**
@@ -25,13 +26,67 @@ export class SubstationManager {
   }
 
   /**
-   * @param {string} playerId
-   * @param {string} substationId
+   * All players connected to substations in this guild (aggregated per-substation lists).
+   * @param {string} guildId
    */
-  buildMigrateMessage(playerId, substationId) {
-    return {
-      typeUrl: MSG_TYPES.SUBSTATION_PLAYER_MIGRATE,
-      value: { creator: "", player_id: playerId, substation_id: substationId },
-    };
+  fetchGridPlayers(guildId) {
+    return this.store.query(keys.energyGridPlayers(guildId), () => this.fetchAllGridPlayers());
+  }
+
+  /** @returns {Promise<import("../types/api.js").PlayerData[]>} */
+  async fetchAllGridPlayers() {
+    const substations = await this.guildAPI.getSubstationList();
+    const ids = (Array.isArray(substations) ? substations : [])
+      .map((s) => String(s.id))
+      .filter(Boolean);
+    const batches = await Promise.all(ids.map((id) => this.fetchPlayersForGrid(id)));
+    return batches.flat();
+  }
+
+  /**
+   * @param {string} substationId
+   * @returns {Promise<import("../types/api.js").PlayerData[]>}
+   */
+  async fetchPlayersForGrid(substationId) {
+    try {
+      const players = await this.guildAPI.getSubstationPlayers(substationId);
+      return (Array.isArray(players) ? players : []).map((p) => ({
+        ...p,
+        substation_id: p.substation_id ?? /** @type {{ substationId?: string }} */ (p).substationId ?? substationId,
+      }));
+    } catch (err) {
+      if (err instanceof GuildAPIError && err.missing) return [];
+      throw err;
+    }
+  }
+
+  /**
+   * @param {string} creator
+   * @param {string} substationId destination substation
+   * @param {string[]} playerIds
+   */
+  buildMigrateMessage(creator, substationId, playerIds) {
+    return buildSubstationPlayerMigrate({ creator, substationId, playerIds });
+  }
+
+  /**
+   * @param {string} creator
+   * @param {string} destSubstationId
+   * @param {string[]} playerIds
+   * @param {string} guildId
+   * @param {string[]} [sourceSubstationIds]
+   */
+  enqueueMigrate(creator, destSubstationId, playerIds, guildId, sourceSubstationIds = []) {
+    const msg = this.buildMigrateMessage(creator, destSubstationId, playerIds);
+    const invalidate = new Set([
+      keys.substationList(),
+      keys.gridIndex(),
+      keys.guildRoster(guildId),
+      keys.energyGridPlayers(guildId),
+      keys.substationPlayers(destSubstationId),
+    ]);
+    for (const id of playerIds) invalidate.add(keys.player(id));
+    for (const id of sourceSubstationIds) invalidate.add(keys.substationPlayers(id));
+    return this.store.tx?.enqueue(msg, { invalidate: [...invalidate] });
   }
 }

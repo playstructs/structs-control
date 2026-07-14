@@ -2,11 +2,13 @@
 set -euo pipefail
 
 mode="${STRUCTS_CONTROL_MODE:-prod}"
+dev_port="${STRUCTS_DEV_PORT:-8092}"
 
 case "${mode}" in
   dev)
-    echo "structs-control: dev mode (webpack-dev-server on :8081)"
-    exec npm run dev -- --host 0.0.0.0
+    echo "structs-control: dev mode (webpack-dev-server on :${dev_port})"
+    export STRUCTS_DEV_PORT="${dev_port}"
+    exec npm run dev -- --host 0.0.0.0 --port "${dev_port}"
     ;;
   prod)
     if [[ ! -f /app/dist/index.html ]]; then
