@@ -34,7 +34,7 @@ Point the webpack dev proxy at a guild host:
 
 ### 1. Web Browser
 
-`http://localhost:8081/`
+`http://localhost:8092/`
 
 
 ## Learn more

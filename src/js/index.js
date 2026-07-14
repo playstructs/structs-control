@@ -52,6 +52,7 @@ import { ProviderManager } from "./managers/ProviderManager.js";
 import { AgreementManager } from "./managers/AgreementManager.js";
 import { StatManager } from "./managers/StatManager.js";
 import { GridManager } from "./managers/GridManager.js";
+import { PermissionManager } from "./managers/PermissionManager.js";
 
 import { MenuPageRouter } from "./framework/MenuPageRouter.js";
 import { GrassManager } from "./framework/GrassManager.js";
@@ -115,6 +116,7 @@ const providerManager = new ProviderManager({ store, guildAPI });
 const agreementManager = new AgreementManager({ store, guildAPI });
 const statManager = new StatManager({ store, guildAPI });
 const gridManager = new GridManager({ store, guildAPI });
+const permissionManager = new PermissionManager({ store, guildAPI });
 
 // -- Router -------------------------------------------------------------------
 
@@ -144,7 +146,17 @@ function mountLayout() {
 
   // Lazy-loaded controllers: each becomes its own webpack chunk via dynamic import().
   router.registerLazyController("Overview", () =>
-    import("./controllers/OverviewController.js").then((m) => new m.OverviewController({ store, layout: newLayout, guildManager })),
+    import("./controllers/OverviewController.js").then(
+      (m) =>
+        new m.OverviewController({
+          store,
+          layout: newLayout,
+          guildManager,
+          substationManager,
+          reactorManager,
+          infusionManager,
+        }),
+    ),
   );
   router.registerLazyController("GuildDetails", () =>
     import("./controllers/GuildDetailsController.js").then((m) => new m.GuildDetailsController({ store, layout: newLayout, guildManager })),
@@ -184,9 +196,35 @@ function mountLayout() {
         }),
     ),
   );
+  router.registerLazyController("EnergyGrid", () =>
+    import("./controllers/EnergyGridController.js").then(
+      (m) =>
+        new m.EnergyGridController({
+          store,
+          layout: newLayout,
+          router,
+          substationManager,
+          guildManager,
+          gridManager,
+        }),
+    ),
+  );
   router.registerLazyController("Allocations", () =>
     import("./controllers/AllocationsController.js").then(
       (m) => new m.AllocationsController({ store, layout: newLayout, router, allocationManager, gridManager }),
+    ),
+  );
+  router.registerLazyController("Permissions", () =>
+    import("./controllers/PermissionsController.js").then(
+      (m) =>
+        new m.PermissionsController({
+          store,
+          layout: newLayout,
+          router,
+          substationManager,
+          guildManager,
+          permissionManager,
+        }),
     ),
   );
   router.registerLazyController("EnergySection", () =>
@@ -201,7 +239,16 @@ function mountLayout() {
     ),
   );
   router.registerLazyController("Activity", () =>
-    import("./controllers/ActivityController.js").then((m) => new m.ActivityController({ store, layout: newLayout })),
+    import("./controllers/ActivityController.js").then(
+      (m) =>
+        new m.ActivityController({
+          store,
+          layout: newLayout,
+          guildManager,
+          reactorManager,
+          infusionManager,
+        }),
+    ),
   );
   router.registerLazyController("Dashboards", () =>
     import("./controllers/DashboardsController.js").then(

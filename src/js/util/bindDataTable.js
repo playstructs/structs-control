@@ -41,6 +41,7 @@ export function nextSortDirection(isSortedColumn, currentDir) {
  *   onNavigate?: (path: string) => void,
  *   onRemoveFilter?: (tagId: string) => void,
  *   onApplyFilters?: (filters: import("./tableFilters.js").FilterState) => void,
+ *   onSelectionChange?: (keys: Set<string>) => void,
  * }} handlers
  */
 /**
@@ -60,7 +61,7 @@ function portalFilterPanel(panelId) {
 
 export function bindDataTable(root, props, handlers) {
   if (!root) return;
-  const { onChange, onNavigate, onRemoveFilter, onApplyFilters } = handlers;
+  const { onChange, onNavigate, onRemoveFilter, onApplyFilters, onSelectionChange } = handlers;
   const prefix = props.paramPrefix ?? "";
   const page = Number(props.page) || 1;
 
@@ -156,10 +157,29 @@ export function bindDataTable(root, props, handlers) {
 
   if (onNavigate) {
     root.querySelectorAll(".sg-row-link").forEach((tr) => {
-      tr.addEventListener("click", () => {
+      tr.addEventListener("click", (e) => {
+        const target = /** @type {HTMLElement} */ (e.target);
+        if (target.closest('[data-role="row-select"]')) return;
         const href = tr.getAttribute("data-href");
         if (href) onNavigate(href);
       });
+    });
+  }
+
+  if (onSelectionChange && props.selectable) {
+    const emitSelection = () => {
+      const keys = new Set(
+        [...root.querySelectorAll('[data-role="row-select"]:checked')].map(
+          (el) => /** @type {HTMLInputElement} */ (el).dataset.key ?? "",
+        ),
+      );
+      keys.delete("");
+      onSelectionChange(keys);
+    };
+
+    root.querySelectorAll('[data-role="row-select"]').forEach((el) => {
+      el.addEventListener("click", (e) => e.stopPropagation());
+      el.addEventListener("change", () => emitSelection());
     });
   }
 }

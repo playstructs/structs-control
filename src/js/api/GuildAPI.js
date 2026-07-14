@@ -32,6 +32,7 @@ export class GuildAPI {
       "/agreement/",
       "/stat/",
       "/grid/",
+      "/permission/",
     ];
     for (const p of optional) this.ajax.registerOptional(p);
   }
@@ -291,6 +292,19 @@ export class GuildAPI {
       `/stat/${encodeURIComponent(metric)}/object/${encodeURIComponent(objectKey)}/range/page/1${qs}`,
     );
     return page.rows;
+  }
+
+  // -- Permissions ------------------------------------------------------------
+
+  /**
+   * Object permission grants (`PermissionRecord[]` with `permissionId` / `value`).
+   * Optional — many Guild APIs do not expose this yet.
+   * @param {string} objectId
+   */
+  async getPermissionsByObject(objectId) {
+    return /** @type {Array<{ permissionId?: string, permission_id?: string, value?: number | string, permissions?: number | string }>} */ (
+      await fetchCatalogList(this.ajax, `/permission/object/${encodeURIComponent(objectId)}/page/`)
+    );
   }
 
   // -- Helpers ---------------------------------------------------------------

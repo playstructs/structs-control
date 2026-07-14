@@ -1,0 +1,77 @@
+// Energy Permissions page (Figma Flows 1902:64550)
+
+.sg-permissions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sg-permissions__picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.sg-permissions__picker-label {
+  margin: 0;
+  font-size: var(--sg-type-subtitle-size);
+  font-weight: 600;
+  color: var(--sg-text-body);
+}
+
+.sg-permissions__picker-select {
+  width: auto;
+  min-width: 220px;
+}
+
+.sg-permissions__api-hint {
+  margin: 0 0 12px;
+  font-size: var(--sg-type-subtitle-size);
+  color: var(--sg-text-subtitle);
+}
+
+.sg-perm-switch .form-check-input {
+  width: 2.5rem;
+  height: 1.35rem;
+  margin: 0;
+  cursor: pointer;
+  background-color: var(--sg-border-default);
+  border-color: var(--sg-border-default);
+
+  &:checked {
+    background-color: var(--sg-text-success, #32862b);
+    border-color: var(--sg-text-success, #32862b);
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 0.15rem rgba(50, 134, 43, 0.2);
+  }
+}
+
+.sg-set-perms__lead {
+  margin: 0 0 16px;
+  font-size: var(--sg-type-subtitle-size);
+  color: var(--sg-text-subtitle);
+}
+
+.sg-set-perms__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.sg-set-perms__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--sg-type-subtitle-size);
+  color: var(--sg-text-body);
+  cursor: pointer;
+
+  input {
+    margin: 0;
+  }
+}

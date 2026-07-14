@@ -549,42 +549,106 @@
 }
 
 .sg-datatable__empty-art {
-  width: 120px;
+  width: 128px;
   margin-bottom: 8px;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
 
-.sg-empty-struct-svg {
+.sg-empty-robot-svg {
   display: block;
   width: 100%;
   height: auto;
   overflow: visible;
-  animation: sg-empty-struct-bob 1.2s steps(2, end) infinite;
+  animation: sg-empty-robot-idle 2.4s steps(4, end) infinite;
 }
 
-.sg-empty-struct-svg__pixel--antenna {
-  animation: sg-empty-antenna-blink 1s steps(2, end) infinite;
+.sg-empty-robot__base {
+  transform-origin: 50% 85%;
 }
 
-@keyframes sg-empty-struct-bob {
+.sg-empty-robot__antenna {
+  transform-origin: 50% 100%;
+  animation: sg-empty-robot-antenna 0.9s steps(2, end) infinite;
+}
+
+.sg-empty-robot__eyes {
+  animation: sg-empty-robot-eyes 4s steps(1, end) infinite;
+}
+
+.sg-empty-robot__chest {
+  animation: sg-empty-robot-chest 1.2s steps(3, end) infinite;
+}
+
+.sg-empty-robot__arms {
+  transform-origin: 50% 48%;
+  animation: sg-empty-robot-arms 2.8s steps(3, end) infinite;
+}
+
+@keyframes sg-empty-robot-idle {
   0%,
   100% {
     transform: translateY(0);
   }
+  25% {
+    transform: translateY(-2px);
+  }
   50% {
-    transform: translateY(-6px);
+    transform: translateY(0);
+  }
+  75% {
+    transform: translateY(-4px);
   }
 }
 
-@keyframes sg-empty-antenna-blink {
+@keyframes sg-empty-robot-antenna {
   0%,
-  75% {
-    fill: #ffd95a;
+  70% {
+    opacity: 1;
   }
-  76%,
+  71%,
   100% {
-    fill: #ffef9a;
+    opacity: 0.35;
+  }
+}
+
+@keyframes sg-empty-robot-eyes {
+  0%,
+  92%,
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  93%,
+  95% {
+    opacity: 0.85;
+    transform: scaleY(0.15);
+  }
+}
+
+@keyframes sg-empty-robot-chest {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  33% {
+    opacity: 0.45;
+  }
+  66% {
+    opacity: 1;
+  }
+}
+
+@keyframes sg-empty-robot-arms {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  33% {
+    transform: rotate(-4deg) translateY(-1px);
+  }
+  66% {
+    transform: rotate(3deg) translateY(0);
   }
 }
 

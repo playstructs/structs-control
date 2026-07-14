@@ -2,39 +2,71 @@ import { AbstractController } from "../framework/AbstractController.js";
 import { AbstractViewModel } from "../framework/AbstractViewModel.js";
 import { LayoutViewModel } from "../view_models/LayoutViewModel.js";
 import { DataTable } from "../view_models/components/DataTable.js";
+import { overviewActivityItem, overviewCardHeader } from "../view_models/components/OverviewCard.js";
 import { statusBadge } from "../util/statusDisplay.js";
 import { TX_STATUS } from "../constants/SigningQueueConstants.js";
 import { notify } from "../store/notify.js";
+import { keys } from "../store/keys.js";
+import { buildEntityLookup } from "../util/entityLookup.js";
+import { buildOverviewActivityItems } from "../util/activityFeed.js";
 
 /**
  * Activity / Alerts page.
  *
- * Two views over `store.tx`:
- *   - Queue:   pending + in-flight txs, in broadcast order, with operator
- *              controls (move up/down, cancel) and live ETA.
- *   - History: settled txs (confirmed / failed / cancelled), with retry for
- *              failures and an inspector for hash / error / payload.
- *
- * Re-renders on every tx state change via `store.tx.subscribe`.
+ * Primary surface: Figma Activity feed (session txs + guild infusion state).
+ * Secondary: operator Queue / History tables over `store.tx`.
  */
 export class ActivityController extends AbstractController {
+  /**
+   * @param {{
+   *   store: import("../store/Store.js").Store,
+   *   layout: import("../view_models/LayoutViewModel.js").LayoutViewModel,
+   *   guildManager?: import("../managers/GuildManager.js").GuildManager,
+   *   reactorManager?: import("../managers/ReactorManager.js").ReactorManager,
+   *   infusionManager?: import("../managers/InfusionManager.js").InfusionManager,
+   * }} deps
+   */
   constructor(deps) {
     super("Activity", deps.store);
     this.layout = deps.layout;
+    this.guildManager = deps.guildManager;
+    this.reactorManager = deps.reactorManager;
+    this.infusionManager = deps.infusionManager;
   }
 
   activate() {
-    this.layout.mountContent(new ActivityViewModel({ store: this.store }));
+    const session = this.store.session?.data;
+    if (session) {
+      void this.guildManager?.fetchRoster(session.guildId);
+      void this.reactorManager?.fetchList(session.guildId);
+      void this.infusionManager?.fetchGuildInfusions(session.guildId);
+    }
+    this.layout.mountContent(
+      new ActivityViewModel({
+        store: this.store,
+        guildId: session?.guildId ?? "",
+      }),
+    );
   }
 }
 
 class ActivityViewModel extends AbstractViewModel {
   /**
-   * @param {{ store: import("../store/Store.js").Store }} deps
+   * @param {{ store: import("../store/Store.js").Store, guildId: string }} deps
    */
   constructor(deps) {
     super();
     this.store = deps.store;
+    this.guildId = deps.guildId;
+  }
+
+  mount(container) {
+    super.mount(container);
+    if (this.guildId) {
+      this.subscribe(this.store, keys.guildRoster(this.guildId));
+      this.subscribe(this.store, keys.reactorList(this.guildId));
+      this.subscribe(this.store, keys.guildInfusions(this.guildId));
+    }
     if (this.store.tx) {
       this._unsubs.push(this.store.tx.subscribe(() => this.update()));
     }
@@ -43,6 +75,10 @@ class ActivityViewModel extends AbstractViewModel {
   render() {
     const tx = this.store.tx;
     const records = tx?.list() ?? [];
+    const infusionRes = this.guildId
+      ? this.store.read(keys.guildInfusions(this.guildId))
+      : { status: "idle", data: null };
+    const lookup = buildEntityLookup(this.store);
 
     const inFlight = records.filter((r) => r.status === TX_STATUS.SIGNING || r.status === TX_STATUS.CONFIRMING);
     const pending = records.filter((r) => r.status === TX_STATUS.PENDING);
@@ -51,23 +87,35 @@ class ActivityViewModel extends AbstractViewModel {
         (r) => r.status === TX_STATUS.CONFIRMED || r.status === TX_STATUS.FAILED || r.status === TX_STATUS.CANCELLED,
       )
       .sort((a, b) => b.updatedAt - a.updatedAt);
-
     const queueRows = [...inFlight, ...pending];
 
     return `
       ${LayoutViewModel.pageHeader({
         title: "Activity",
-        subtitle: "Transaction queue and history for this session.",
+        subtitle: "Recent guild activity and this session’s transaction queue.",
         actionsHtml: `<a class="btn btn-light btn-sm" href="/overview" data-spa-link><i class="bi bi-chevron-left me-1"></i>Back to Overview</a>`,
       })}
 
-      <section class="sg-tx-section">
+      <section class="sg-overview-card sg-activity-feed-card">
+        ${overviewCardHeader({
+          title: "Activity",
+          subtitle: "Your recent activity",
+          showMenu: true,
+        })}
+        <div class="sg-overview-card__body sg-overview-card__body--activity">
+          ${renderFullActivityFeed(records, infusionRes, lookup)}
+        </div>
+      </section>
+
+      <section class="sg-tx-section mt-4">
         <h2 class="sg-tx-section__title">Queue <span class="sg-tx-section__count">${queueRows.length}</span></h2>
+        <p class="sg-tx-section__hint">Pending broadcasts for this signed-in session.</p>
         ${this._queueTable(queueRows, pending).renderHTML()}
       </section>
 
       <section class="sg-tx-section mt-4">
         <h2 class="sg-tx-section__title">History</h2>
+        <p class="sg-tx-section__hint">Settled transactions from this session.</p>
         ${this._historyTable(history).renderHTML()}
       </section>
     `;
@@ -202,6 +250,26 @@ class ActivityViewModel extends AbstractViewModel {
       });
     });
   }
+}
+
+/**
+ * @param {import("../store/TxQueue.js").TxRecord[]} records
+ * @param {import("../store/Resource.js").Resource<unknown>} infusionRes
+ * @param {import("../util/entityLookup.js").EntityLookup} lookup
+ */
+function renderFullActivityFeed(records, infusionRes, lookup) {
+  const infusions =
+    infusionRes.status === "success" && Array.isArray(infusionRes.data) ? infusionRes.data : [];
+
+  if (!records.length && !infusions.length) {
+    if (infusionRes.status === "loading" || infusionRes.status === "idle") {
+      return `<div class="sg-loading"><div class="spinner-border spinner-border-sm text-primary"></div></div>`;
+    }
+    return `<p class="sg-overview-empty">No activity yet. Infusions and session transactions will appear here.</p>`;
+  }
+
+  const items = buildOverviewActivityItems(records, /** @type {any[]} */ (infusions), lookup, { limit: 50 });
+  return items.map((item) => overviewActivityItem(item)).join("");
 }
 
 /**

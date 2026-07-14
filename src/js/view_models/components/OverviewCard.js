@@ -2,6 +2,8 @@
  * Overview page cards — Figma Flows Overview-final (1920:64583).
  */
 
+import { activityIconUrl } from "../../constants/ActivityIcons.js";
+
 /**
  * @param {{ title: string, subtitle?: string, showMenu?: boolean }} props
  * @returns {string}
@@ -124,6 +126,7 @@ export function overviewActivitySeeAll() {
  *   body?: string,
  *   actionLabel?: string,
  *   actionHref?: string,
+ *   showDivider?: boolean,
  * }} props
  * @returns {string}
  */
@@ -135,20 +138,38 @@ export function overviewActivityItem(props) {
       : props.actionLabel
         ? `<button type="button" class="sg-overview-activity__action" disabled>${escapeHtml(props.actionLabel)}</button>`
         : "";
+  const divider = props.showDivider ? `<div class="sg-overview-activity__divider" aria-hidden="true"></div>` : "";
+  const iconHtml = renderActivityIcon(props.icon, tone);
 
   return `
     <article class="sg-overview-activity__item">
       <div class="sg-overview-activity__head">
         <div class="sg-overview-activity__title-row">
-          <i class="bi ${escapeAttr(props.icon)} sg-overview-activity__icon sg-overview-activity__icon--${tone}" aria-hidden="true"></i>
+          ${iconHtml}
           <h3 class="sg-overview-activity__title">${escapeHtml(props.title)}</h3>
         </div>
         ${props.time ? `<time class="sg-overview-activity__time">${escapeHtml(props.time)}</time>` : ""}
       </div>
-      ${props.body ? `<p class="sg-overview-activity__body">${escapeHtml(props.body)}</p>` : ""}
-      ${action}
+      <div class="sg-overview-activity__content">
+        ${props.body ? `<p class="sg-overview-activity__body">${escapeHtml(props.body)}</p>` : ""}
+        ${action}
+      </div>
+      ${divider}
     </article>
   `;
+}
+
+/**
+ * @param {string} icon
+ * @param {string} tone
+ */
+function renderActivityIcon(icon, tone) {
+  const url = activityIconUrl(icon);
+  if (url) {
+    return `<img class="sg-overview-activity__icon sg-overview-activity__icon--figma" src="${escapeAttr(url)}" alt="" width="16" height="16" aria-hidden="true" />`;
+  }
+  // Fallback for any leftover Bootstrap class names.
+  return `<i class="bi ${escapeAttr(icon)} sg-overview-activity__icon sg-overview-activity__icon--${tone}" aria-hidden="true"></i>`;
 }
 
 /**

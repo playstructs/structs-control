@@ -33,6 +33,7 @@ This is a **vanilla JavaScript** admin SPA (no React, no Vite) built with **Webp
 - Bootstrap 5 + Bootstrap Icons. No Tailwind, MUI, Chakra, or other UI kits.
 - A la carte JS imports only (`bootstrap/js/dist/modal.js`, `dropdown.js`, `collapse.js`, `tooltip.js`).
 - Token overrides in `src/styles/_tokens.scss`; non-Bootstrap design tokens as `--sg-*` CSS custom properties in `_custom-vars.scss`.
+- Design canvas is Figma **MacBook Pro 16" - 12** (1728×1117). Use `--sg-design-*` tokens and `@media (min-width: 1728px)` for fixed Figma page dimensions; use `max-width` breakpoints below that for responsive collapse.
 - Sidebar is fixed at exactly five items: **Guild, Bank, Energy Market, Dashboards, Settings** with icons `XDiamond`, `PiggyBank`, `BarChartLine`, `GraphUp`, `ToggleOff`. Do not add, remove, or reorder without an explicit design change request.
 
 ## Naming
