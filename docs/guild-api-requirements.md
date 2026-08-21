@@ -110,9 +110,14 @@ Player name and avatar updates are chain transactions only. The SPA no longer ca
 
 ### Guild bank balances
 
-The Mint / Redeem page can submit transactions but cannot read current balances. We'd like:
+The Guild Banks overview and Mint / Redeem page can submit transactions but cannot fully populate collateral / supply / ranking cards without reads. We'd like:
 
-- `GET /guild/{guildId}/bank/balance` -- `{ balances: [{ denom, amount }] }`
+- `GET /guild/{guildId}/bank/balance` -- `{ balances: [{ denom, amount }] }` (SPA already calls this as optional)
+- Period deltas for collateral / token supply / ratio (`last_7_days`, `last_24_hours`) and cross-guild ranks for the Alpha Collateral and Token & Collateral Ratio cards
+- `GET /guild/{guildId}/bank/top-accounts` — top token holders for the Top Accounts card
+- `GET /guild/{guildId}/bank/top-tokens` (or network-wide) — Top Tokens card
+- `GET /guild/{guildId}/bank/transactions` — guild-scoped mint/redeem/transfer history (SPA currently shows session TxQueue bank msgs only)
+- Per-player guild-token balances for Player Lookup Amount column
 
 ### Tx confirmation
 

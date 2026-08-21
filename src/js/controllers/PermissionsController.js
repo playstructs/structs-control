@@ -6,7 +6,7 @@ import { tableSectionCard, TABLE_SECTION_ICON } from "../view_models/components/
 import { notify } from "../store/notify.js";
 import { keys } from "../store/keys.js";
 import { bindDataTable, gotoTableState, tableBindState } from "../util/bindDataTable.js";
-import { parseFiltersFromParams, parseTableParams } from "../util/tableFilters.js";
+import { hasActiveFilters, parseFiltersFromParams, parseTableParams } from "../util/tableFilters.js";
 import { checkboxFilterField } from "../util/tableFilterSchemas.js";
 import { buildEntityLookup } from "../util/entityLookup.js";
 import { renderEntityLink } from "../util/entityLink.js";
@@ -221,7 +221,9 @@ class PermissionsViewModel extends AbstractViewModel {
           keyFn: (r) => String(r.id),
           ...parseTableParams(this.params, PREFIX),
           pageSize: 11,
-          emptyMessage: "No players in this guild yet.",
+          emptyMessage: hasActiveFilters(filters)
+            ? "No players match these filters."
+            : "No players in this guild yet.",
         });
 
         const permsHint =

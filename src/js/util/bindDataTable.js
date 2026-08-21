@@ -6,6 +6,7 @@ import {
   removeFilterTag,
   serializeFiltersToParams,
 } from "./tableFilters.js";
+import { dismissFilterOffcanvas } from "./bindFilterPanel.js";
 
 /**
  * URL-synced sort/search/pagination props for bindDataTable.
@@ -31,6 +32,29 @@ export function nextSortDirection(isSortedColumn, currentDir) {
 }
 
 /**
+ * Move the filter offcanvas to <body> so it overlays the shell at viewport scale.
+ * Dispose any previous body-ported instance first so Bootstrap backdrops are not orphaned.
+ *
+ * @param {string} panelId
+ * @returns {HTMLElement | null}
+ */
+function portalFilterPanel(panelId) {
+  document.querySelectorAll(`body > #${CSS.escape(panelId)}`).forEach((el) => {
+    dismissFilterOffcanvas(/** @type {HTMLElement} */ (el));
+    el.remove();
+  });
+  // Catch backdrops left behind by a prior Apply → navigate race.
+  document.querySelectorAll(".offcanvas-backdrop").forEach((el) => el.remove());
+  document.body.classList.remove("overflow-hidden");
+
+  const panelEl = document.getElementById(panelId);
+  if (panelEl && panelEl.parentElement !== document.body) {
+    document.body.appendChild(panelEl);
+  }
+  return panelEl;
+}
+
+/**
  * Wire sort, search, pagination, filter panel, row navigation, and filter-tag removal
  * for a rendered DataTable root element.
  *
@@ -44,21 +68,6 @@ export function nextSortDirection(isSortedColumn, currentDir) {
  *   onSelectionChange?: (keys: Set<string>) => void,
  * }} handlers
  */
-/**
- * Move the filter offcanvas to <body> so it overlays the shell at viewport scale.
- *
- * @param {string} panelId
- * @returns {HTMLElement | null}
- */
-function portalFilterPanel(panelId) {
-  document.querySelectorAll(`body > #${CSS.escape(panelId)}`).forEach((el) => el.remove());
-  const panelEl = document.getElementById(panelId);
-  if (panelEl && panelEl.parentElement !== document.body) {
-    document.body.appendChild(panelEl);
-  }
-  return panelEl;
-}
-
 export function bindDataTable(root, props, handlers) {
   if (!root) return;
   const { onChange, onNavigate, onRemoveFilter, onApplyFilters, onSelectionChange } = handlers;

@@ -110,7 +110,7 @@ const substationManager = new SubstationManager({ store, guildAPI });
 const allocationManager = new AllocationManager({ store, guildAPI });
 const infusionManager = new InfusionManager({ store, guildAPI });
 const reactorManager = new ReactorManager({ store, guildAPI });
-const bankManager = new BankManager({ store });
+const bankManager = new BankManager({ store, guildAPI });
 const membershipApplicationManager = new MembershipApplicationManager({ store, guildAPI });
 const providerManager = new ProviderManager({ store, guildAPI });
 const agreementManager = new AgreementManager({ store, guildAPI });
@@ -178,7 +178,9 @@ function mountLayout() {
     import("./controllers/PlayerProfileController.js").then((m) => new m.PlayerProfileController({ store, layout: newLayout, router, playerManager, infusionManager })),
   );
   router.registerLazyController("Bank", () =>
-    import("./controllers/BankController.js").then((m) => new m.BankController({ store, layout: newLayout, bankManager })),
+    import("./controllers/BankController.js").then(
+      (m) => new m.BankController({ store, layout: newLayout, bankManager, guildManager, router }),
+    ),
   );
   router.registerLazyController("Substations", () =>
     import("./controllers/SubstationsController.js").then((m) => new m.SubstationsController({ store, layout: newLayout, router, substationManager, gridManager })),

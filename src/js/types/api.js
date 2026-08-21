@@ -39,6 +39,14 @@
 
 /**
  * @typedef {{
+ *   balances?: Array<{ denom?: string, amount?: string | number }>,
+ *   amount?: string | number,
+ *   denom?: string,
+ * }} GuildBankBalanceData
+ */
+
+/**
+ * @typedef {{
  *   id: string,
  *   guild_id?: string,
  *   primary_address?: string,

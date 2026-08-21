@@ -4,6 +4,8 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .sg-permissions__picker {
@@ -39,6 +41,7 @@
   cursor: pointer;
   background-color: var(--sg-border-default);
   border-color: var(--sg-border-default);
+  flex-shrink: 0;
 
   &:checked {
     background-color: var(--sg-text-success, #32862b);
@@ -48,6 +51,17 @@
   &:focus {
     box-shadow: 0 0 0 0.15rem rgba(50, 134, 43, 0.2);
   }
+}
+
+// Keep toggle columns compact so 7 switches fit without blowing past the card.
+.sg-permissions .sg-datatable__table > :not(caption) > * > *:not(.sg-datatable__check-col):not(:nth-child(2)) {
+  padding-left: 12px;
+  padding-right: 12px;
+  white-space: nowrap;
+}
+
+.sg-permissions .sg-perm-switch {
+  width: 100%;
 }
 
 .sg-set-perms__lead {

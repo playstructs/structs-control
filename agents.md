@@ -162,7 +162,7 @@ Visual source of truth: **[Factions Admin Design System](https://www.figma.com/d
 | Icons (Bootstrap set) | `15:19548` | Matches `bi-*` classes in code |
 | Navigation (header, sidebar, breadcrumbs, pills) | `661:11652` | Sidebar: 72px collapsed / 256px expanded |
 | Tables | `571:21113` | Toolbar, status dots, pagination |
-| Guild bank / Mint-Redeem screen | `2234:22100` | Reference for Bank section layout |
+| Guild bank / Mint-Redeem screen | `2314:76093` | Flows file — Guild Banks overview + mint/redeem |
 
 **Naming:** Figma says "Faction"; code and copy always say **Guild**.
 

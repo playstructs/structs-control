@@ -3,7 +3,7 @@
 // Section card — icon heading + subheader + table grid (Flows header+subheader)
 .sg-table-section {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     "header"
     "subheader"
@@ -14,6 +14,7 @@
   border: 1px solid var(--sg-border);
   border-radius: var(--sg-radius-md);
   overflow: visible;
+  max-width: 100%;
 }
 
 .sg-table-section__content {
@@ -85,8 +86,14 @@
 
 .sg-table-section .sg-datatable--embedded .sg-datatable__scroll {
   grid-area: scroll;
+  // Bleed to the card edges while staying width-capped so overflow-x can scroll.
   margin-inline: calc(-1 * var(--sg-table-chrome-padding));
-  border-top: 0;
+  width: calc(100% + 2 * var(--sg-table-chrome-padding));
+  max-width: none;
+  // Default min-width:auto sizes the grid item to the table's intrinsic width,
+  // which spills past the card when there are many columns (e.g. Permissions).
+  min-width: 0;
+  overflow-x: auto;
 }
 
 .sg-table-section .sg-datatable--embedded .sg-datatable__footer {
@@ -427,6 +434,8 @@
 .sg-datatable__scroll {
   overflow-x: auto;
   border-top: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .sg-datatable__table {

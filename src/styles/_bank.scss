@@ -1,0 +1,311 @@
+// Guild Bank — Figma Flows Guild Bank (2314:76093)
+
+.sg-bank {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  max-width: 100%;
+  padding-top: 16px;
+}
+
+.sg-bank__api-hint {
+  margin: 0;
+  font-size: var(--sg-type-subtitle-size);
+  color: var(--sg-text-subtitle);
+
+  code {
+    font-size: 0.75rem;
+  }
+}
+
+.sg-bank__top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 450px);
+  gap: 16px;
+  align-items: start;
+}
+
+.sg-bank__main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sg-bank__aside {
+  min-width: 0;
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+
+.sg-bank__tables {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.sg-bank-card--actions {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.sg-bank-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 32px;
+  flex-wrap: wrap;
+
+  .sg-btn-lunar {
+    min-width: 150px;
+    justify-content: center;
+  }
+}
+
+.sg-btn-metal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 150px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-btn-metal);
+  color: var(--sg-text-on-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    filter: brightness(0.94);
+    color: var(--sg-text-on-primary);
+  }
+}
+
+.sg-btn-danger-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--sg-border-danger, #cc2d2d);
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-surface);
+  color: var(--sg-text-danger, #cc2d2d);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: rgba(204, 45, 45, 0.06);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+}
+
+.sg-btn-danger-fill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--sg-radius-xs);
+  background: var(--sg-text-danger, #cc2d2d);
+  color: var(--sg-text-on-primary, #fff);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+
+  &:hover {
+    filter: brightness(0.95);
+  }
+}
+
+.sg-btn-success-fill.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.sg-bank-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.sg-bank-aside .sg-overview-card__header {
+  margin-bottom: 0;
+}
+
+.sg-bank-aside__list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 32px;
+}
+
+.sg-bank-aside__empty {
+  margin: 0;
+  font-size: var(--sg-type-subtitle-size);
+  color: var(--sg-text-subtitle);
+}
+
+.sg-bank-aside__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sg-bank-aside__row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sg-bank-aside__row-name {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--sg-text-title);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sg-bank-aside__row-value {
+  margin: 0;
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  color: var(--sg-text-subtitle);
+  text-align: right;
+  white-space: nowrap;
+}
+
+// Mint / Redeem forms (Figma Minting Tokens / Redeem)
+.sg-bank-mint {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 560px;
+  padding-top: 16px;
+}
+
+.sg-bank-mint__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sg-bank-mint__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96px;
+  padding: 8px 12px;
+  border: 1px solid var(--sg-border-default);
+  border-radius: 999px;
+  background: var(--sg-surface);
+  color: var(--sg-text-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--sg-surface-hover);
+    color: var(--sg-text-body);
+  }
+
+  &.is-active {
+    background: var(--sg-btn-metal);
+    border-color: var(--sg-btn-metal);
+    color: var(--sg-text-on-primary);
+  }
+}
+
+.sg-bank-mint__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sg-bank-mint__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 32px;
+  background: var(--sg-surface);
+  border: 1px solid var(--sg-border-lighter);
+  border-radius: var(--sg-radius-md);
+}
+
+.sg-bank-mint__panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sg-bank-mint__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--sg-text-title, #111827);
+}
+
+.sg-bank-mint__subtitle {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--sg-text-subtitle);
+}
+
+.sg-bank-mint__available {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 0.8125rem;
+}
+
+.sg-bank-mint__available-label {
+  color: var(--sg-text-subtitle);
+}
+
+.sg-bank-mint__available-value {
+  color: var(--sg-text-body);
+  font-weight: 500;
+}
+
+.sg-bank-mint__submit {
+  align-self: flex-end;
+  min-width: 150px;
+}
+
+.sg-status-dot {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: var(--sg-text-body);
+}
+
+@media (max-width: 1100px) {
+  .sg-bank__top {
+    grid-template-columns: 1fr;
+  }
+
+  .sg-bank__aside {
+    position: static;
+  }
+}

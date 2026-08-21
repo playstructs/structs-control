@@ -22,6 +22,7 @@ export const keys = {
   guildMembersCount: (guildId) => Object.freeze(["guild", String(guildId), "members-count"]),
   guildsDirectory: () => Object.freeze(["guild", "directory"]),
   guildInfusions: (guildId) => Object.freeze(["guild", String(guildId), "infusions"]),
+  guildBankBalance: (guildId) => Object.freeze(["guild", String(guildId), "bank-balance"]),
 
   player: (playerId) => Object.freeze(["player", String(playerId)]),
   playerInfusion: (playerId) => Object.freeze(["player", String(playerId), "infusion"]),

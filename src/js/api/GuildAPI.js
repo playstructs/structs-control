@@ -33,6 +33,7 @@ export class GuildAPI {
       "/stat/",
       "/grid/",
       "/permission/",
+      "/bank/balance",
     ];
     for (const p of optional) this.ajax.registerOptional(p);
   }
@@ -97,6 +98,15 @@ export class GuildAPI {
   /** @param {string} guildId */
   async getGuildPowerStats(guildId) {
     return await this.ajax.get(`/guild/${encodeURIComponent(guildId)}/power/stats`);
+  }
+
+  /**
+   * Optional — 404 → Resource missing.
+   * @param {string} guildId
+   * @returns {Promise<{ balances?: Array<{ denom?: string, amount?: string | number }> } | null>}
+   */
+  async getGuildBankBalance(guildId) {
+    return await this.ajax.get(`/guild/${encodeURIComponent(guildId)}/bank/balance`);
   }
 
   async getSettings() {

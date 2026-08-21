@@ -1,3 +1,4 @@
+import { keys } from "../store/keys.js";
 import {
   buildGuildBankMint,
   buildGuildBankRedeem,
@@ -5,19 +6,31 @@ import {
 } from "../util/txMessages.js";
 
 /**
- * Builds bank mint/redeem/confiscate-and-burn transactions. The actual signing
- * happens via store.tx.enqueue(); this class just shapes the payload.
+ * Guild bank reads + mint/redeem/confiscate tx builders.
+ * Signing goes through `store.tx.enqueue()`.
  */
 export class BankManager {
   /**
-   * @param {{ store: import("../store/Store.js").Store }} deps
+   * @param {{
+   *   store: import("../store/Store.js").Store,
+   *   guildAPI: import("../api/GuildAPI.js").GuildAPI,
+   * }} deps
    */
   constructor(deps) {
     this.store = deps.store;
+    this.guildAPI = deps.guildAPI;
   }
 
   _creator() {
     return this.store.session?.data?.address ?? "";
+  }
+
+  /**
+   * Optional balance read — 404 becomes Resource{status:"missing"}.
+   * @param {string} guildId
+   */
+  async fetchBalance(guildId) {
+    return this.store.query(keys.guildBankBalance(guildId), () => this.guildAPI.getGuildBankBalance(guildId));
   }
 
   /**
