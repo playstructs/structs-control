@@ -7,7 +7,6 @@ import {
 import { DataTable } from "../view_models/components/DataTable.js";
 import { tableSectionCard, TABLE_SECTION_ICON } from "../view_models/components/TableSectionCard.js";
 import { pfpAvatar } from "../view_models/components/PfpViewer.js";
-import { floatingLabelField } from "../view_models/components/FloatingLabelField.js";
 import { notify } from "../store/notify.js";
 import { keys } from "../store/keys.js";
 import { MSG_TYPES } from "../constants/MessageTypes.js";
@@ -17,14 +16,28 @@ import { checkboxFilterField, statusFilterField } from "../util/tableFilterSchem
 import { buildEntityLookup } from "../util/entityLookup.js";
 import { renderEntityLink } from "../util/entityLink.js";
 import { formatUnitOrDash } from "../util/unitDisplay.js";
-import { readFormValues, validateForm, required, pattern } from "../util/validate.js";
 import { formatActivityRelativeTime } from "../util/activityFeed.js";
+import { openMintRedeemDialogue, openConfiscateDialogue } from "../framework/MintRedeemDialogue.js";
+import { TX_STATUS } from "../constants/SigningQueueConstants.js";
+import {
+  beginMintFlowWatch,
+  captureEnqueuedTx,
+  dismissMintSuccessAlert,
+  markMintCompletedVisited,
+  maybeToastMintSuccess,
+  mintCompletedPath,
+  mintProcessingPath,
+  readMintFlow,
+  syncMintFlowSettled,
+  shouldShowMintSuccessAlert,
+} from "../util/mintFlow.js";
 
 const TX_PREFIX = "tx.";
 const PLAYER_PREFIX = "pl.";
 
 /**
- * Guild Banks (Figma Flows `2314:76093` / Guild-bank-3) + Mint/Redeem forms.
+ * Guild Banks (Figma Flows `2314:76093`) + Mint/Redeem modals (`2314:77251`)
+ * + mint processing/completed (`2314:77254` / `2314:77387`).
  */
 export class BankController extends AbstractController {
   /**
@@ -49,20 +62,41 @@ export class BankController extends AbstractController {
     if (!session) return;
 
     void this.bankManager.fetchBalance(session.guildId);
+    void this.bankManager.fetchAllBanks();
+    void this.bankManager.fetchHistory(session.guildId, "1d");
+    void this.bankManager.fetchHistory(session.guildId, "1h");
+    void this.bankManager.fetchGuildLeaderboard();
     void this.guildManager.fetchGuild(session.guildId);
     void this.guildManager.fetchRoster(session.guildId);
     void this.guildManager.fetchPowerStats(session.guildId);
 
-    if (page === "mintRedeem") {
+    if (page === "mintProcessing" || page === "redeemProcessing") {
       this.layout.mountContent(
-        new MintRedeemViewModel({
+        new MintStatusViewModel({
           store: this.store,
-          bankManager: this.bankManager,
-          guildId: session.guildId,
-          params: params ?? {},
+          router: this.router,
+          phase: "processing",
+          mode: page === "redeemProcessing" ? "redeem" : "mint",
         }),
       );
       return;
+    }
+    if (page === "mintCompleted" || page === "redeemCompleted") {
+      this.layout.mountContent(
+        new MintStatusViewModel({
+          store: this.store,
+          router: this.router,
+          phase: "completed",
+          mode: page === "redeemCompleted" ? "redeem" : "mint",
+        }),
+      );
+      return;
+    }
+
+    // Legacy `/guild/mint-redeem` → stay on Guild Banks and open the modal.
+    const mergedParams = { ...(params ?? {}) };
+    if (page === "mintRedeem" && !mergedParams.mode) {
+      mergedParams.mode = "mint";
     }
 
     this.layout.mountContent(
@@ -70,8 +104,9 @@ export class BankController extends AbstractController {
         store: this.store,
         bankManager: this.bankManager,
         guildId: session.guildId,
-        params: params ?? {},
+        params: mergedParams,
         router: this.router,
+        openMode: page === "mintRedeem" ? String(mergedParams.mode ?? "mint") : String(mergedParams.mode ?? ""),
       }),
     );
   }
@@ -85,6 +120,7 @@ class GuildBanksViewModel extends AbstractViewModel {
    *   guildId: string,
    *   params: Record<string, unknown>,
    *   router: import("../framework/MenuPageRouter.js").MenuPageRouter,
+   *   openMode?: string,
    * }} deps
    */
   constructor(deps) {
@@ -94,8 +130,11 @@ class GuildBanksViewModel extends AbstractViewModel {
     this.guildId = deps.guildId;
     this.params = deps.params;
     this.router = deps.router;
+    this.openMode = deps.openMode ?? "";
     /** @type {Set<string>} */
     this.selectedPlayers = new Set();
+    /** @type {boolean} */
+    this._openedFromQuery = false;
   }
 
   mount(container) {
@@ -104,33 +143,68 @@ class GuildBanksViewModel extends AbstractViewModel {
     this.subscribe(this.store, keys.guildRoster(this.guildId));
     this.subscribe(this.store, keys.guildPowerStats(this.guildId));
     this.subscribe(this.store, keys.guildBankBalance(this.guildId));
-    if (this.store.tx) {
-      this._unsubs.push(this.store.tx.subscribe(() => this.update()));
+    this.subscribe(this.store, keys.guildBankAll());
+    this.subscribe(this.store, keys.guildBankHistory(this.guildId, "1d"));
+    this.subscribe(this.store, keys.guildBankHistory(this.guildId, "1h"));
+    this.subscribe(this.store, keys.leaderboard("guild"));
+    const bank = bankRow(this.store.read(keys.guildBankBalance(this.guildId)));
+    const denom = bank?.denom;
+    if (denom) {
+      void this.bankManager.fetchTopAccounts(denom);
+      this.subscribe(this.store, keys.inventoryByDenom(denom, 1));
     }
+    if (this.store.tx) {
+      this._unsubs.push(
+        this.store.tx.subscribe(() => {
+          syncMintFlowSettled(this.store);
+          maybeToastMintSuccess(this.router, this.store);
+          this.update();
+        }),
+      );
+    }
+    syncMintFlowSettled(this.store);
+    maybeToastMintSuccess(this.router, this.store);
+    if (shouldShowMintSuccessAlert()) this.update();
   }
 
   render() {
+    syncMintFlowSettled(this.store);
     const lookup = buildEntityLookup(this.store);
     const balanceRes = this.store.read(keys.guildBankBalance(this.guildId));
+    const banksAllRes = this.store.read(keys.guildBankAll());
+    const historyRes = this.store.read(keys.guildBankHistory(this.guildId, "1d"));
+    const leaderboardRes = this.store.read(keys.leaderboard("guild"));
     const powerRes = this.store.read(keys.guildPowerStats(this.guildId));
     const rosterRes = this.store.read(keys.guildRoster(this.guildId));
     const guildRes = this.store.read(keys.guild(this.guildId));
     const guildData = /** @type {import("../types/api.js").GuildData | null} */ (guildRes.data);
     const tokenLabel = guildTokenLabel(guildData);
 
-    const balance = pickBalanceAmount(balanceRes);
-    const powerData = /** @type {Record<string, unknown> | null} */ (powerRes.data);
-    const collateralFallback = pickAmount(powerData, [
-      "total_alpha_infused",
-      "alpha_infused",
-      "collateral",
-      "bank_collateral",
-    ]);
+    const bank = bankRow(balanceRes);
+    const denom = bank?.denom || guildTokenDenom(this.guildId);
+    const inventoryRes = denom ? this.store.read(keys.inventoryByDenom(denom, 1)) : null;
+    if (denom && (!inventoryRes || inventoryRes.status === "idle")) {
+      void this.bankManager.fetchTopAccounts(denom);
+    }
 
-    const collateralValue =
-      balance != null
-        ? formatUnitOrDash(balance.amount, balance.denom || "ualpha")
-        : formatUnitOrDash(collateralFallback, "ualpha");
+    const powerData = /** @type {Record<string, unknown> | null} */ (powerRes.data);
+    const collateralRaw =
+      bank?.collateral ??
+      pickAmount(powerData, ["total_alpha_infused", "alpha_infused", "collateral", "bank_collateral"]);
+    const supplyRaw = bank?.supply ?? null;
+    const ratioRaw = bank?.ratio ?? null;
+
+    const collateralValue = formatUnitOrDash(collateralRaw, "ualpha");
+    const supplyValue =
+      supplyRaw != null && supplyRaw !== "" ? formatUnitOrDash(supplyRaw, denom || "uguild") : "—";
+    const ratioValue =
+      ratioRaw != null && ratioRaw !== "" && Number.isFinite(Number(ratioRaw))
+        ? Number(ratioRaw).toFixed(2)
+        : "—";
+    const collateralRank = rankLabel(leaderboardRes, this.guildId);
+    const history1hRes = this.store.read(keys.guildBankHistory(this.guildId, "1h"));
+    const mint24h = historyMintVolume(history1hRes.status !== "idle" ? history1hRes : historyRes, denom);
+    const balanceByOwner = inventoryBalanceMap(inventoryRes);
 
     const collateralCard = `
       <section class="sg-overview-card">
@@ -144,9 +218,13 @@ class GuildBanksViewModel extends AbstractViewModel {
             iconTone: "blue",
             label: "Total Balance",
             columns: [
-              { value: collateralValue },
+              {
+                value: collateralValue,
+                rank: collateralRank || undefined,
+                rankTone: "neutral",
+              },
               { period: "Last 7 Days", value: "—" },
-              { period: "Last 24hrs", value: "—" },
+              { period: "Last 24hrs", value: mint24h.collateralHint },
             ],
           })}
         </div>
@@ -160,8 +238,8 @@ class GuildBanksViewModel extends AbstractViewModel {
           subtitle: "Mint guild tokens against collateral or redeem them back",
         })}
         <div class="sg-bank-card__actions">
-          <a class="sg-btn-metal" href="/guild/mint-redeem?mode=mint" data-spa-link>Mint</a>
-          <a class="sg-btn-lunar" href="/guild/mint-redeem?mode=redeem" data-spa-link>Redeem</a>
+          <button type="button" class="sg-btn-metal" data-action="open-mint">Mint</button>
+          <button type="button" class="sg-btn-lunar" data-action="open-redeem">Redeem</button>
         </div>
       </section>
     `;
@@ -178,9 +256,9 @@ class GuildBanksViewModel extends AbstractViewModel {
             iconTone: "blue",
             label: "Total Supply",
             columns: [
-              { value: "—" },
+              { value: supplyValue },
               { period: "Last 7 Days", value: "—" },
-              { period: "Last 24hrs", value: "—" },
+              { period: "Last 24hrs", value: mint24h.supplyHint },
             ],
           })}
           ${overviewMetricRow({
@@ -188,7 +266,7 @@ class GuildBanksViewModel extends AbstractViewModel {
             iconTone: "blue",
             label: "Ratio",
             columns: [
-              { value: "—" },
+              { value: ratioValue },
               { period: "Last 7 Days", value: "—" },
               { period: "Last 24hrs", value: "—" },
             ],
@@ -204,14 +282,14 @@ class GuildBanksViewModel extends AbstractViewModel {
           subtitle: "Top accounts with highest balance",
         })}
         <div class="sg-bank-aside__list">
-          ${renderEmptyList("Account balances are not available from the Guild API yet.")}
+          ${renderTopAccounts(inventoryRes, lookup, denom)}
         </div>
         ${overviewCardHeader({
           title: "Top Tokens",
           subtitle: "Most popular tokens",
         })}
         <div class="sg-bank-aside__list">
-          ${renderEmptyList("Token popularity rankings are not available yet.")}
+          ${renderTopTokens(banksAllRes, lookup)}
         </div>
       </section>
     `;
@@ -293,9 +371,9 @@ class GuildBanksViewModel extends AbstractViewModel {
       <button type="button" class="sg-btn-danger-outline" data-action="bulk-confiscate" ${bulkDisabled}>
         <i class="bi bi-slash-circle" aria-hidden="true"></i> Confiscate
       </button>
-      <a class="sg-btn-success-fill ${selectedCount === 0 ? "is-disabled" : ""}" href="/guild/mint-redeem?mode=transfer" data-spa-link>
+      <button type="button" class="sg-btn-success-fill" data-action="bulk-transfer" ${bulkDisabled}>
         <i class="bi bi-arrow-right" aria-hidden="true"></i> Transfer
-      </a>
+      </button>
     `;
 
     const playerTable = new DataTable({
@@ -333,9 +411,17 @@ class GuildBanksViewModel extends AbstractViewModel {
         {
           id: "amount",
           label: "Amount",
-          get: () => "",
+          get: (r) => balanceByOwner.get(`player:${String(r.id)}`) ?? "",
           searchable: false,
-          render: () => "—",
+          sort: (a, b) => {
+            const av = Number(balanceByOwner.get(`player:${String(a.id)}`) ?? 0);
+            const bv = Number(balanceByOwner.get(`player:${String(b.id)}`) ?? 0);
+            return av - bv;
+          },
+          render: (_v, row) => {
+            const raw = balanceByOwner.get(`player:${String(row.id)}`);
+            return raw != null ? escapeHtml(formatUnitOrDash(raw, denom || "uguild")) : "—";
+          },
         },
         {
           id: "id",
@@ -361,36 +447,56 @@ class GuildBanksViewModel extends AbstractViewModel {
 
     const balanceHint =
       balanceRes.status === "missing"
-        ? `<p class="sg-bank__api-hint">Guild bank balance API is not available on this Guild — collateral and supply metrics stay empty until <code>GET /guild/{id}/bank/balance</code> ships.</p>`
+        ? `<p class="sg-bank__api-hint">Guild bank API (<code>GET /guild-bank</code>) is not available on this Guild.</p>`
         : "";
+
+    const flow = readMintFlow();
+    const showSuccess = shouldShowMintSuccessAlert();
+    const successCopy =
+      flow?.mode === "redeem"
+        ? "Recent redemption has completed. Check it out "
+        : "Recent minting has completed. Check it out ";
+    const successAlert = showSuccess
+      ? `
+      <div class="sg-bank__success-alert" role="status">
+        <span class="sg-bank__success-alert-icon" aria-hidden="true"><i class="bi bi-check-circle-fill"></i></span>
+        <p class="sg-bank__success-alert-body">
+          ${successCopy}<button type="button" class="sg-bank__success-alert-link" data-action="mint-success-details">here</button>
+        </p>
+        <button type="button" class="sg-bank__success-alert-close" data-action="dismiss-mint-success" aria-label="Dismiss">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </div>`
+      : "";
 
     return `
       <div class="sg-bank">
         ${balanceHint}
-        <div class="sg-bank__top">
+        ${successAlert}
+        <div class="sg-bank__primary">
           <div class="sg-bank__main">
             ${collateralCard}
             ${mintRedeemCard}
             ${ratioCard}
           </div>
-          <aside class="sg-bank__aside" aria-label="Top accounts and tokens">
-            ${asideCard}
-          </aside>
+          <div class="sg-bank__tables">
+            ${tableSectionCard({
+              icon: TABLE_SECTION_ICON,
+              title: "Transactions",
+              subtitle: "Token transactions",
+              bodyHtml: txTable.renderHTML(),
+            })}
+            ${tableSectionCard({
+              icon: TABLE_SECTION_ICON,
+              title: "Player Lookup",
+              subtitle: "Players in this guild",
+              bodyHtml: playerTable.renderHTML(),
+            })}
+          </div>
         </div>
-        <div class="sg-bank__tables">
-          ${tableSectionCard({
-            icon: TABLE_SECTION_ICON,
-            title: "Transactions",
-            subtitle: "Token transactions",
-            bodyHtml: txTable.renderHTML(),
-          })}
-          ${tableSectionCard({
-            icon: TABLE_SECTION_ICON,
-            title: "Player Lookup",
-            subtitle: "Players in this guild",
-            bodyHtml: playerTable.renderHTML(),
-          })}
-        </div>
+        <aside class="sg-bank__aside" aria-label="Top accounts and tokens">
+          ${asideCard}
+        </aside>
       </div>
     `;
   }
@@ -438,6 +544,26 @@ class GuildBanksViewModel extends AbstractViewModel {
       },
     );
 
+    root.querySelector('[data-action="open-mint"]')?.addEventListener("click", () => {
+      void this.openFlow("mint");
+    });
+    root.querySelector('[data-action="open-redeem"]')?.addEventListener("click", () => {
+      void this.openFlow("redeem");
+    });
+    root.querySelector('[data-action="dismiss-mint-success"]')?.addEventListener("click", () => {
+      dismissMintSuccessAlert();
+      this.update();
+    });
+    root.querySelector('[data-action="mint-success-details"]')?.addEventListener("click", () => {
+      const flow = readMintFlow();
+      const mode = flow?.mode === "redeem" ? "redeem" : "mint";
+      dismissMintSuccessAlert();
+      this.router.goto(mintCompletedPath(mode));
+    });
+    root.querySelector('[data-action="bulk-transfer"]')?.addEventListener("click", () => {
+      if (!this.selectedPlayers.size) return;
+      notify.toast("Token transfer is not available yet.", "info");
+    });
     root.querySelector('[data-action="bulk-confiscate"]')?.addEventListener("click", () => {
       if (!this.selectedPlayers.size) return;
       const first = [...this.selectedPlayers][0];
@@ -445,96 +571,252 @@ class GuildBanksViewModel extends AbstractViewModel {
       const players = Array.isArray(roster.data) ? roster.data : [];
       const row = players.find((p) => String(p.id) === String(first));
       const address = row?.primary_address || first;
-      this.router.goto(`/guild/mint-redeem?mode=confiscate&player=${encodeURIComponent(String(address))}`);
+      void this.openConfiscate(String(address ?? ""));
     });
+
+    if (!this._openedFromQuery && (this.openMode === "mint" || this.openMode === "redeem")) {
+      this._openedFromQuery = true;
+      void this.openFlow(/** @type {"mint" | "redeem"} */ (this.openMode));
+    } else if (!this._openedFromQuery && (this.openMode === "confiscate" || this.openMode === "transfer")) {
+      this._openedFromQuery = true;
+      void this.openConfiscate(String(this.params.player ?? ""));
+    }
+  }
+
+  /**
+   * @param {"mint" | "redeem"} mode
+   */
+  async openFlow(mode) {
+    const guildRes = this.store.read(keys.guild(this.guildId));
+    const balanceRes = this.store.read(keys.guildBankBalance(this.guildId));
+    const powerRes = this.store.read(keys.guildPowerStats(this.guildId));
+    const bank = bankRow(balanceRes);
+    const powerData = /** @type {Record<string, unknown> | null} */ (powerRes.data);
+
+    const collateralRaw =
+      bank?.collateral ??
+      pickAmount(powerData, ["total_alpha_infused", "alpha_infused", "collateral", "bank_collateral"]);
+    const supplyRaw = bank?.supply ?? null;
+    const denom = bank?.denom || guildTokenDenom(this.guildId);
+
+    const tokenLabel = guildTokenLabel(/** @type {import("../types/api.js").GuildData | null} */ (guildRes.data));
+    const result = await openMintRedeemDialogue({
+      mode,
+      tokenLabel,
+      denom,
+      collateralBalance: collateralRaw != null ? Number(collateralRaw) : null,
+      totalSupply: supplyRaw != null ? Number(supplyRaw) : null,
+    });
+    if (!result) return;
+
+    const preview = result.preview;
+    const guildName =
+      String(/** @type {Record<string, unknown> | null} */ (guildRes.data)?.name ?? "") ||
+      String(/** @type {Record<string, unknown> | null} */ (guildRes.data)?.id ?? this.guildId);
+    const invalidate = this.bankManager.invalidateKeys(this.guildId, denom);
+
+    if (result.mode === "redeem") {
+      const enqueued = await captureEnqueuedTx(() =>
+        this.store.tx?.enqueue(this.bankManager.buildRedeem({ amount: result.amount, denom: result.denom }), {
+          invalidate,
+        }),
+      );
+      if (!enqueued?.id || !this.store.tx) {
+        notify.toast("Could not enqueue redeem", "danger");
+        return;
+      }
+      beginMintFlowWatch({
+        txId: enqueued.id,
+        store: this.store,
+        router: this.router,
+        state: {
+          mode: "redeem",
+          amountToken: result.amount,
+          amountAlpha: String(preview.alphaReceivingRaw ?? ""),
+          denom: result.denom,
+          tokenLabel,
+          guildName,
+          alphaReceiving: preview.alphaReceiving ?? null,
+          prevCollateral: preview.prevCollateral,
+          nextCollateral: preview.nextCollateral,
+          deltaCollateral: preview.deltaCollateral?.text ?? null,
+          deltaCollateralTone: preview.deltaCollateral?.tone ?? null,
+          prevSupply: preview.prevSupply,
+          nextSupply: preview.nextSupply,
+          deltaSupply: preview.deltaSupply?.text ?? null,
+          deltaSupplyTone: preview.deltaSupply?.tone ?? null,
+          prevRatio: preview.prevRatio,
+          nextRatio: preview.nextRatio,
+          deltaRatio: preview.deltaRatio?.text ?? null,
+          deltaRatioTone: preview.deltaRatio?.tone ?? null,
+        },
+      });
+      this.router.goto(mintProcessingPath("redeem"));
+      return;
+    }
+
+    const enqueued = await captureEnqueuedTx(() =>
+      this.store.tx?.enqueue(
+        this.bankManager.buildMint({ amountAlpha: result.amountAlpha, amountToken: result.amountToken }),
+        { invalidate },
+      ),
+    );
+    if (!enqueued?.id || !this.store.tx) {
+      notify.toast("Could not enqueue mint", "danger");
+      return;
+    }
+
+    beginMintFlowWatch({
+      txId: enqueued.id,
+      store: this.store,
+      router: this.router,
+      state: {
+        mode: "mint",
+        amountToken: result.amountToken,
+        amountAlpha: result.amountAlpha,
+        tokenLabel,
+        guildName,
+        alphaReceiving: null,
+        prevCollateral: preview.prevCollateral,
+        nextCollateral: preview.nextCollateral,
+        deltaCollateral: preview.deltaCollateral?.text ?? null,
+        deltaCollateralTone: preview.deltaCollateral?.tone ?? null,
+        prevSupply: preview.prevSupply,
+        nextSupply: preview.nextSupply,
+        deltaSupply: preview.deltaSupply?.text ?? null,
+        deltaSupplyTone: preview.deltaSupply?.tone ?? null,
+        prevRatio: preview.prevRatio,
+        nextRatio: preview.nextRatio,
+        deltaRatio: preview.deltaRatio?.text ?? null,
+        deltaRatioTone: preview.deltaRatio?.tone ?? null,
+      },
+    });
+    this.router.goto(mintProcessingPath("mint"));
+  }
+
+  /** @param {string} playerPrefill */
+  async openConfiscate(playerPrefill) {
+    const guildRes = this.store.read(keys.guild(this.guildId));
+    const tokenLabel = guildTokenLabel(/** @type {import("../types/api.js").GuildData | null} */ (guildRes.data));
+    const result = await openConfiscateDialogue({ playerPrefill, tokenLabel });
+    if (!result) return;
+    const bank = bankRow(this.store.read(keys.guildBankBalance(this.guildId)));
+    void this.store.tx?.enqueue(
+      this.bankManager.buildConfiscateAndBurn({
+        fromAddress: result.fromAddress,
+        amountToken: result.amountToken,
+      }),
+      { invalidate: this.bankManager.invalidateKeys(this.guildId, bank?.denom) },
+    );
+    notify.toast("Confiscate enqueued", "info");
   }
 }
 
-class MintRedeemViewModel extends AbstractViewModel {
+/**
+ * Figma Token Minting / Redemption Processing & Completed.
+ */
+class MintStatusViewModel extends AbstractViewModel {
   /**
    * @param {{
    *   store: import("../store/Store.js").Store,
-   *   bankManager: import("../managers/BankManager.js").BankManager,
-   *   guildId: string,
-   *   params: Record<string, unknown>,
+   *   router: import("../framework/MenuPageRouter.js").MenuPageRouter,
+   *   phase: "processing" | "completed",
+   *   mode?: "mint" | "redeem",
    * }} deps
    */
   constructor(deps) {
     super();
     this.store = deps.store;
-    this.bankManager = deps.bankManager;
-    this.guildId = deps.guildId;
-    this.params = deps.params;
+    this.router = deps.router;
+    this.phase = deps.phase;
+    this.mode = deps.mode === "redeem" ? "redeem" : "mint";
   }
 
   mount(container) {
     super.mount(container);
-    this.subscribe(this.store, keys.guildBankBalance(this.guildId));
+    if (this.store.tx) {
+      this._unsubs.push(
+        this.store.tx.subscribe(() => {
+          syncMintFlowSettled(this.store);
+          maybeToastMintSuccess(this.router, this.store);
+          this.update();
+        }),
+      );
+    }
+    if (this.phase === "completed") {
+      markMintCompletedVisited();
+    }
+    syncMintFlowSettled(this.store);
+    maybeToastMintSuccess(this.router, this.store);
   }
 
   render() {
-    const mode = String(this.params.mode ?? "mint");
-    const playerPrefill = String(this.params.player ?? "");
-    const balanceRes = this.store.read(keys.guildBankBalance(this.guildId));
-    const balance = pickBalanceAmount(balanceRes);
-    const available =
-      balance != null ? formatUnitOrDash(balance.amount, balance.denom || "ualpha") : "—";
+    const flow = readMintFlow();
+    const mode = flow?.mode === "redeem" || this.mode === "redeem" ? "redeem" : "mint";
+    const tx = flow?.txId ? this.store.tx?.list()?.find((r) => r.id === flow.txId) : null;
+    const confirmed = tx?.status === TX_STATUS.CONFIRMED || this.phase === "completed" || Boolean(flow?.settled);
+    const failed = tx?.status === TX_STATUS.FAILED || tx?.status === TX_STATUS.CANCELLED;
+    const processing = this.phase === "processing" && !confirmed && !failed;
 
-    const mintActive = mode === "mint" || mode === "";
-    const redeemActive = mode === "redeem";
-    const confiscateActive = mode === "confiscate" || mode === "transfer";
+    const amountLabel = escapeHtml(flow?.amountToken || "—");
+    const tokenName = escapeHtml(flow?.tokenLabel || "guild tokens");
+
+    const title = confirmed
+      ? mode === "redeem"
+        ? "Token Redemption Completed"
+        : "Token Minting Completed"
+      : failed
+        ? mode === "redeem"
+          ? "Token Redemption Failed"
+          : "Token Minting Failed"
+        : mode === "redeem"
+          ? "Token Redemption Processing"
+          : "Token Minting Processing";
+
+    const subtitle = confirmed
+      ? mode === "redeem"
+        ? "Your token redemption process has completed!"
+        : "Your token minting process has completed!"
+      : failed
+        ? tx?.error || (mode === "redeem" ? "The redeem transaction did not complete." : "The mint transaction did not complete.")
+        : mode === "redeem"
+          ? `We’re processing your redemption of <strong>${amountLabel} ${tokenName}</strong>`
+          : "We’re processing your token minting request";
+
+    const icon = confirmed
+      ? "bi-patch-check-fill sg-mint-status__icon--ok"
+      : failed
+        ? "bi-x-circle-fill sg-mint-status__icon--err"
+        : "bi-clock-fill sg-mint-status__icon--wait";
+
+    const pendingLabel = confirmed ? "New" : "Pending";
+    const summaryBody =
+      mode === "redeem"
+        ? renderRedeemSummaryTable(flow, pendingLabel)
+        : renderMintSummaryTable(flow, pendingLabel);
+
+    const nextDisabled = processing ? "disabled" : "";
+    const nextAction =
+      this.phase === "completed" || failed ? "goto-banks" : confirmed ? "goto-completed" : "goto-banks";
 
     return `
-      <div class="sg-bank-mint">
-        <div class="sg-bank-mint__tabs" role="tablist">
-          <a class="sg-bank-mint__tab ${mintActive ? "is-active" : ""}" href="/guild/mint-redeem?mode=mint" data-spa-link>Mint</a>
-          <a class="sg-bank-mint__tab ${redeemActive ? "is-active" : ""}" href="/guild/mint-redeem?mode=redeem" data-spa-link>Redeem</a>
-          <a class="sg-bank-mint__tab ${confiscateActive ? "is-active" : ""}" href="/guild/mint-redeem?mode=confiscate" data-spa-link>Confiscate</a>
+      <div class="sg-mint-status">
+        <a class="sg-mint-status__back" href="/guild/banks" data-spa-link data-action="back-banks">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i> back to Guild Banks
+        </a>
+        <div class="sg-mint-status__hero">
+          <span class="sg-mint-status__icon" aria-hidden="true"><i class="bi ${icon}"></i></span>
+          <h1 class="sg-mint-status__title">${escapeHtml(title)}</h1>
+          <p class="sg-mint-status__subtitle">${subtitle}</p>
         </div>
-
-        <div class="sg-bank-mint__grid">
-          <form id="form-mint" class="sg-bank-mint__panel ${mintActive ? "" : "d-none"}">
-            <div class="sg-bank-mint__panel-head">
-              <h2 class="sg-bank-mint__title">Mint Tokens</h2>
-              <p class="sg-bank-mint__subtitle">Lock alpha collateral and mint guild tokens.</p>
-            </div>
-            ${floatingLabelField({ id: "mint-alpha", name: "amount_alpha", label: "Amount alpha", placeholder: "0" })}
-            ${floatingLabelField({ id: "mint-token", name: "amount_token", label: "Amount token", placeholder: "0" })}
-            <div class="sg-bank-mint__available">
-              <span class="sg-bank-mint__available-label">Available</span>
-              <span class="sg-bank-mint__available-value">${escapeHtml(available)}</span>
-            </div>
-            <button type="submit" class="sg-btn-metal sg-bank-mint__submit" data-action="mint">Mint</button>
-          </form>
-
-          <form id="form-redeem" class="sg-bank-mint__panel ${redeemActive ? "" : "d-none"}">
-            <div class="sg-bank-mint__panel-head">
-              <h2 class="sg-bank-mint__title">Redeem Tokens</h2>
-              <p class="sg-bank-mint__subtitle">Burn guild tokens to reclaim collateral.</p>
-            </div>
-            ${floatingLabelField({ id: "redeem-amount", name: "amount", label: "Amount", placeholder: "0" })}
-            ${floatingLabelField({ id: "redeem-denom", name: "denom", label: "Denom", placeholder: "ualpha", value: balance?.denom || "" })}
-            <div class="sg-bank-mint__available">
-              <span class="sg-bank-mint__available-label">Available</span>
-              <span class="sg-bank-mint__available-value">${escapeHtml(available)}</span>
-            </div>
-            <button type="submit" class="sg-btn-lunar sg-bank-mint__submit" data-action="redeem">Redeem</button>
-          </form>
-
-          <form id="form-confiscate" class="sg-bank-mint__panel ${confiscateActive ? "" : "d-none"}">
-            <div class="sg-bank-mint__panel-head">
-              <h2 class="sg-bank-mint__title">Confiscate &amp; Burn</h2>
-              <p class="sg-bank-mint__subtitle">Seize tokens from a player address and burn them.</p>
-            </div>
-            ${floatingLabelField({
-              id: "cb-from",
-              name: "from_address",
-              label: "From address",
-              value: playerPrefill,
-            })}
-            ${floatingLabelField({ id: "cb-amount", name: "amount_token", label: "Amount token", placeholder: "0" })}
-            <button type="submit" class="sg-btn-danger-fill sg-bank-mint__submit" data-action="confiscate">Confiscate &amp; burn</button>
-          </form>
+        ${tableSectionCard({
+          icon: "bi-arrow-repeat",
+          title: "Token Summary",
+          subtitle: "Changes in Token Balance",
+          bodyHtml: summaryBody,
+        })}
+        <div class="sg-mint-status__actions">
+          <button type="button" class="sg-btn-success-fill" data-action="${nextAction}" ${nextDisabled}>Next</button>
         </div>
       </div>
     `;
@@ -542,56 +824,84 @@ class MintRedeemViewModel extends AbstractViewModel {
 
   bind() {
     if (!this.container) return;
-    const container = this.container;
-    const amountSchema = { amount: [required(), pattern(/^\d+$/, "Whole numbers only")], denom: [required()] };
-    const mintSchema = {
-      amount_alpha: [required(), pattern(/^\d+$/, "Whole numbers only")],
-      amount_token: [required(), pattern(/^\d+$/, "Whole numbers only")],
-    };
+    const mode = readMintFlow()?.mode === "redeem" || this.mode === "redeem" ? "redeem" : "mint";
 
-    container.querySelector("#form-mint")?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const form = /** @type {HTMLFormElement} */ (container.querySelector("#form-mint"));
-      const v = readFormValues(form);
-      const { valid, errors } = validateForm(mintSchema, v);
-      if (!valid) return notify.formError("form-mint", errors);
-      void this.store.tx?.enqueue(
-        this.bankManager.buildMint({ amountAlpha: v.amount_alpha, amountToken: v.amount_token }),
-      );
-      notify.toast("Mint enqueued", "info");
+    this.container.querySelector('[data-action="goto-completed"]')?.addEventListener("click", () => {
+      this.router.goto(mintCompletedPath(mode));
     });
-
-    container.querySelector("#form-redeem")?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const form = /** @type {HTMLFormElement} */ (container.querySelector("#form-redeem"));
-      const v = readFormValues(form);
-      const { valid, errors } = validateForm(amountSchema, v);
-      if (!valid) return notify.formError("form-redeem", errors);
-      void this.store.tx?.enqueue(this.bankManager.buildRedeem({ amount: v.amount, denom: v.denom }));
-      notify.toast("Redeem enqueued", "info");
-    });
-
-    container.querySelector("#form-confiscate")?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const form = /** @type {HTMLFormElement} */ (container.querySelector("#form-confiscate"));
-      const v = readFormValues(form);
-      const { valid, errors } = validateForm(
-        {
-          amount_token: [required(), pattern(/^\d+$/, "Whole numbers only")],
-          from_address: [required()],
-        },
-        v,
-      );
-      if (!valid) return notify.formError("form-confiscate", errors);
-      void this.store.tx?.enqueue(
-        this.bankManager.buildConfiscateAndBurn({
-          fromAddress: v.from_address,
-          amountToken: v.amount_token,
-        }),
-      );
-      notify.toast("Confiscate enqueued", "info");
+    this.container.querySelector('[data-action="goto-banks"]')?.addEventListener("click", () => {
+      this.router.goto("/guild/banks");
     });
   }
+}
+
+/**
+ * @param {import("../util/mintFlow.js").MintFlowState | null} flow
+ * @param {string} nextHeaderPrefix
+ */
+function renderMintSummaryTable(flow, nextHeaderPrefix) {
+  const cell = (label, value, delta, tone) => {
+    const deltaHtml =
+      delta && tone
+        ? ` <span class="sg-mint-modal__delta sg-mint-modal__delta--${tone}">${escapeHtml(delta)}</span>`
+        : delta
+          ? ` <span class="sg-mint-modal__delta">${escapeHtml(delta)}</span>`
+          : "";
+    return `
+      <div class="sg-mint-summary__col">
+        <div class="sg-mint-summary__head">${escapeHtml(label)}</div>
+        <div class="sg-mint-summary__val">${escapeHtml(value ?? "—")}${deltaHtml}</div>
+      </div>`;
+  };
+
+  return `
+    <div class="sg-mint-summary">
+      ${cell("Previous Alpha Balance", flow?.prevCollateral, null, null)}
+      ${cell(`${nextHeaderPrefix} Alpha Balance`, flow?.nextCollateral, flow?.deltaCollateral ?? null, flow?.deltaCollateralTone ?? null)}
+      ${cell("Previous Supply", flow?.prevSupply, null, null)}
+      ${cell(`${nextHeaderPrefix} Supply`, flow?.nextSupply, flow?.deltaSupply ?? null, flow?.deltaSupplyTone ?? null)}
+      ${cell("Previous Collateral Ratio", flow?.prevRatio, null, null)}
+      ${cell(`${nextHeaderPrefix} Collateral Ratio`, flow?.nextRatio, flow?.deltaRatio ?? null, flow?.deltaRatioTone ?? null)}
+    </div>`;
+}
+
+/**
+ * Redeem processing/completed columns (Figma `2314:78201`).
+ *
+ * @param {import("../util/mintFlow.js").MintFlowState | null} flow
+ * @param {string} nextHeaderPrefix
+ */
+function renderRedeemSummaryTable(flow, nextHeaderPrefix) {
+  const cell = (label, value, delta, tone) => {
+    const deltaHtml =
+      delta && tone
+        ? ` <span class="sg-mint-modal__delta sg-mint-modal__delta--${tone}">${escapeHtml(delta)}</span>`
+        : delta
+          ? ` <span class="sg-mint-modal__delta">${escapeHtml(delta)}</span>`
+          : "";
+    return `
+      <div class="sg-mint-summary__col">
+        <div class="sg-mint-summary__head">${escapeHtml(label)}</div>
+        <div class="sg-mint-summary__val">${escapeHtml(value ?? "—")}${deltaHtml}</div>
+      </div>`;
+  };
+
+  const pendingAmount = nextHeaderPrefix === "New" ? "Amount Redeemed" : "Pending Amount Redeemed";
+  const pendingSupply = nextHeaderPrefix === "New" ? "New Supply" : "Pending Supply";
+  const pendingAlpha = nextHeaderPrefix === "New" ? "Alpha Received" : "Pending Alpha Received";
+  const pendingCollateral =
+    nextHeaderPrefix === "New" ? "New Alpha Collateral Balance" : "Pending Alpha Collateral Balance";
+
+  return `
+    <div class="sg-mint-summary">
+      ${cell("Guild", flow?.guildName || "—", null, null)}
+      ${cell(pendingAmount, flow?.amountToken, null, null)}
+      ${cell("Previous Supply", flow?.prevSupply, null, null)}
+      ${cell(pendingSupply, flow?.nextSupply, flow?.deltaSupply ?? null, flow?.deltaSupplyTone ?? null)}
+      ${cell(pendingAlpha, flow?.alphaReceiving || "—", null, null)}
+      ${cell("Previous Alpha Collateral Balance", flow?.prevCollateral, null, null)}
+      ${cell(pendingCollateral, flow?.nextCollateral, flow?.deltaCollateral ?? null, flow?.deltaCollateralTone ?? null)}
+    </div>`;
 }
 
 function transactionsFilterSchema() {
@@ -675,19 +985,26 @@ function formatBankDate(ts) {
 }
 
 /**
+ * Normalized guild-bank row from `BankManager.fetchBalance`.
  * @param {import("../store/Resource.js").Resource<unknown>} res
- * @returns {{ amount: string | number, denom: string } | null}
+ * @returns {{
+ *   guild_id: string,
+ *   denom: string,
+ *   collateral: unknown,
+ *   supply: unknown,
+ *   ratio: unknown,
+ * } | null}
  */
-function pickBalanceAmount(res) {
-  if (res.status !== "success" || !res.data) return null;
-  const data = /** @type {any} */ (res.data);
-  const balances = Array.isArray(data?.balances) ? data.balances : Array.isArray(data) ? data : null;
-  if (!balances?.length) {
-    if (data?.amount != null) return { amount: data.amount, denom: String(data.denom ?? "ualpha") };
-    return null;
-  }
-  const first = balances[0];
-  return { amount: first.amount ?? 0, denom: String(first.denom ?? "ualpha") };
+function bankRow(res) {
+  if (res.status !== "success" || !res.data || typeof res.data !== "object") return null;
+  const data = /** @type {Record<string, unknown>} */ (res.data);
+  return {
+    guild_id: String(data.guild_id ?? ""),
+    denom: String(data.denom ?? ""),
+    collateral: data.collateral ?? data.amount ?? data.bank_collateral ?? null,
+    supply: data.supply ?? data.total_supply ?? data.token_supply ?? null,
+    ratio: data.ratio ?? null,
+  };
 }
 
 /**
@@ -702,10 +1019,177 @@ function pickAmount(data, keysList) {
   return null;
 }
 
+/** @param {string} guildId */
+function guildTokenDenom(guildId) {
+  return guildId ? `uguild.${guildId}` : "uguild";
+}
+
 /** @param {import("../types/api.js").GuildData | null} guild */
 function guildTokenLabel(guild) {
   const tag = guild?.tag || guild?.name;
   return tag ? String(tag) : "guild token";
+}
+
+/**
+ * Cross-guild collateral rank from `/leaderboard/guild`.
+ * @param {import("../store/Resource.js").Resource<unknown>} res
+ * @param {string} guildId
+ */
+function rankLabel(res, guildId) {
+  if (res.status !== "success" || !Array.isArray(res.data)) return "";
+  const idx = res.data.findIndex((row) => String(/** @type {Record<string, unknown>} */ (row).guild_id) === String(guildId));
+  if (idx < 0) return "";
+  return `#${idx + 1}`;
+}
+
+/**
+ * Net ledger volume over the last ~24h from `/guild-bank/{id}/history?bucket=1h`.
+ * @param {import("../store/Resource.js").Resource<unknown>} res
+ * @param {string} denom
+ */
+function historyMintVolume(res, denom) {
+  const empty = { collateralHint: "—", supplyHint: "—" };
+  if (res.status !== "success" || !Array.isArray(res.data)) return empty;
+
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  let collateralNet = 0;
+  let supplyNet = 0;
+  let sawCollateral = false;
+  let sawSupply = false;
+
+  for (const raw of res.data) {
+    const row = /** @type {Record<string, unknown>} */ (raw);
+    const t = Date.parse(String(row.bucket ?? ""));
+    if (!Number.isFinite(t) || t < cutoff) continue;
+    const vol = Number(row.volume);
+    if (!Number.isFinite(vol)) continue;
+    const action = String(row.action ?? "");
+    if (action === "infused" || action === "defusion_completed") {
+      collateralNet += vol;
+      sawCollateral = true;
+    } else if (action === "minted" || action === "burned") {
+      supplyNet += vol;
+      sawSupply = true;
+    }
+  }
+
+  return {
+    collateralHint: sawCollateral ? formatSignedUnit(collateralNet, "ualpha") : "—",
+    supplyHint: sawSupply ? formatSignedUnit(supplyNet, denom || "uguild") : "—",
+  };
+}
+
+/**
+ * @param {number} net
+ * @param {string} denom
+ */
+function formatSignedUnit(net, denom) {
+  const abs = formatUnitOrDash(Math.abs(net), denom);
+  if (abs === "—") return "—";
+  if (net > 0) return `+${abs}`;
+  if (net < 0) return `−${abs}`;
+  return abs;
+}
+
+/**
+ * @param {import("../store/Resource.js").Resource<unknown> | null} res
+ * @returns {Map<string, string>}
+ */
+function inventoryBalanceMap(res) {
+  /** @type {Map<string, string>} */
+  const map = new Map();
+  if (!res || res.status !== "success" || !Array.isArray(res.data)) return map;
+  for (const raw of res.data) {
+    const row = /** @type {Record<string, unknown>} */ (raw);
+    const ownerType = String(row.owner_type ?? "");
+    const ownerId = String(row.owner_id ?? "");
+    if (!ownerType || !ownerId) continue;
+    map.set(`${ownerType}:${ownerId}`, String(row.balance ?? ""));
+  }
+  return map;
+}
+
+/**
+ * @param {import("../store/Resource.js").Resource<unknown> | null} res
+ * @param {ReturnType<typeof buildEntityLookup>} lookup
+ * @param {string} denom
+ */
+function renderTopAccounts(res, lookup, denom) {
+  if (!res || res.status === "idle" || res.status === "loading") {
+    return renderEmptyList("Loading top accounts…");
+  }
+  if (res.status === "missing") {
+    return renderEmptyList("Inventory API not available on this Guild.");
+  }
+  if (res.status === "error") {
+    return renderEmptyList("Could not load top accounts.");
+  }
+  const rows = Array.isArray(res.data) ? res.data : [];
+  const players = rows
+    .filter((r) => String(/** @type {Record<string, unknown>} */ (r).owner_type) === "player")
+    .slice(0, 8);
+  if (!players.length) return renderEmptyList("No token holders yet.");
+
+  return players
+    .map((raw) => {
+      const row = /** @type {Record<string, unknown>} */ (raw);
+      const ownerId = String(row.owner_id ?? "");
+      const balance = formatUnitOrDash(row.balance, denom || "uguild");
+      return `
+        <div class="sg-bank-aside__row">
+          <div class="sg-bank-aside__row-left">
+            ${pfpAvatar({ attributes: null, size: "sm" })}
+            <p class="sg-bank-aside__row-name">${renderEntityLink(ownerId, lookup)}</p>
+          </div>
+          <p class="sg-bank-aside__row-value">${escapeHtml(balance)}</p>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+/**
+ * Network guild banks ranked by collateral (Top Tokens card).
+ * @param {import("../store/Resource.js").Resource<unknown>} res
+ * @param {ReturnType<typeof buildEntityLookup>} lookup
+ */
+function renderTopTokens(res, lookup) {
+  if (res.status === "idle" || res.status === "loading") {
+    return renderEmptyList("Loading top tokens…");
+  }
+  if (res.status === "missing") {
+    return renderEmptyList("Guild bank API not available on this Guild.");
+  }
+  if (res.status === "error") {
+    return renderEmptyList("Could not load top tokens.");
+  }
+  const rows = Array.isArray(res.data) ? [...res.data] : [];
+  const tokenRows = rows
+    .filter((r) => String(/** @type {Record<string, unknown>} */ (r).denom ?? "").startsWith("uguild."))
+    .sort((a, b) => {
+      const ac = Number(/** @type {Record<string, unknown>} */ (a).collateral) || 0;
+      const bc = Number(/** @type {Record<string, unknown>} */ (b).collateral) || 0;
+      return bc - ac;
+    })
+    .slice(0, 8);
+  if (!tokenRows.length) return renderEmptyList("No guild tokens yet.");
+
+  return tokenRows
+    .map((raw) => {
+      const row = /** @type {Record<string, unknown>} */ (raw);
+      const guildId = String(row.guild_id ?? "");
+      const denom = String(row.denom ?? "");
+      const supply = formatUnitOrDash(row.supply, denom || "uguild");
+      return `
+        <div class="sg-bank-aside__row">
+          <div class="sg-bank-aside__row-left">
+            <p class="sg-bank-aside__row-name">${renderEntityLink(guildId, lookup)}</p>
+          </div>
+          <p class="sg-bank-aside__row-value">${escapeHtml(supply)}</p>
+        </div>
+      `;
+    })
+    .join("");
 }
 
 /** @param {string} hint */

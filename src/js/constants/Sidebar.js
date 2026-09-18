@@ -39,7 +39,6 @@ export const SIDEBAR_ITEMS = [
     defaultPath: "/guild/banks",
     pills: [
       { label: "Guild Banks", path: "/guild/banks" },
-      { label: "Mint / Redeem", path: "/guild/mint-redeem" },
     ],
   },
   {

@@ -33,7 +33,9 @@ export class GuildAPI {
       "/stat/",
       "/grid/",
       "/permission/",
-      "/bank/balance",
+      "/guild-bank",
+      "/inventory/",
+      "/leaderboard/",
     ];
     for (const p of optional) this.ajax.registerOptional(p);
   }
@@ -101,12 +103,64 @@ export class GuildAPI {
   }
 
   /**
-   * Optional — 404 → Resource missing.
-   * @param {string} guildId
-   * @returns {Promise<{ balances?: Array<{ denom?: string, amount?: string | number }> } | null>}
+   * All guild banks: `{ guild_id, denom, collateral, supply, ratio }[]`
+   * (Symfony `InventoryController::getGuildBank` → `/guild-bank`).
+   * @returns {Promise<Array<Record<string, unknown>>>}
    */
-  async getGuildBankBalance(guildId) {
-    return await this.ajax.get(`/guild/${encodeURIComponent(guildId)}/bank/balance`);
+  async getGuildBank() {
+    const data = await this.ajax.get(`/guild-bank`);
+    return Array.isArray(data) ? data : [];
+  }
+
+  /**
+   * Ledger volume history for a guild token (`bucket` = `1d` | `1h`).
+   * @param {string} guildId
+   * @param {string} [bucket]
+   * @returns {Promise<Array<Record<string, unknown>>>}
+   */
+  async getGuildBankHistory(guildId, bucket = "1d") {
+    const q = bucket ? `?bucket=${encodeURIComponent(bucket)}` : "";
+    const data = await this.ajax.get(`/guild-bank/${encodeURIComponent(guildId)}/history${q}`);
+    return Array.isArray(data) ? data : [];
+  }
+
+  /**
+   * Inventory holders for a denom (Top Accounts) — page of `{ owner_type, owner_id, denom, balance }`.
+   * @param {string} denom
+   * @param {number} [page]
+   * @param {number} [limit]
+   */
+  async getInventoryByDenom(denom, page = 1, limit = 25) {
+    const q = limit ? `?limit=${encodeURIComponent(String(limit))}` : "";
+    const data = await this.ajax.get(
+      `/inventory/denom/${encodeURIComponent(denom)}/page/${encodeURIComponent(String(page))}${q}`,
+    );
+    return Array.isArray(data) ? data : [];
+  }
+
+  /**
+   * Inventory for one owner — `{ owner_type, owner_id, denom, balance }[]`.
+   * @param {string} ownerType
+   * @param {string} ownerId
+   */
+  async getInventoryByOwner(ownerType, ownerId) {
+    const data = await this.ajax.get(
+      `/inventory/owner/${encodeURIComponent(ownerType)}/${encodeURIComponent(ownerId)}`,
+    );
+    return Array.isArray(data) ? data : [];
+  }
+
+  /**
+   * @param {"player" | "guild" | "reactor" | "substation" | "provider"} kind
+   * @param {{ order?: string, limit?: number | string }} [opts]
+   */
+  async getLeaderboard(kind, opts = {}) {
+    const params = new URLSearchParams();
+    if (opts.order) params.set("order", String(opts.order));
+    if (opts.limit != null) params.set("limit", String(opts.limit));
+    const q = params.toString() ? `?${params}` : "";
+    const data = await this.ajax.get(`/leaderboard/${encodeURIComponent(kind)}${q}`);
+    return Array.isArray(data) ? data : [];
   }
 
   async getSettings() {

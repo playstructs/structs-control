@@ -26,6 +26,11 @@ export const ROUTES = [
 
   // Bank
   { path: "/guild/banks", controller: "Bank", page: "index", sidebar: "bank", loginRequired: true },
+  { path: "/guild/banks/mint/processing", controller: "Bank", page: "mintProcessing", sidebar: "bank", pill: "/guild/banks", loginRequired: true },
+  { path: "/guild/banks/mint/completed", controller: "Bank", page: "mintCompleted", sidebar: "bank", pill: "/guild/banks", loginRequired: true },
+  { path: "/guild/banks/redeem/processing", controller: "Bank", page: "redeemProcessing", sidebar: "bank", pill: "/guild/banks", loginRequired: true },
+  { path: "/guild/banks/redeem/completed", controller: "Bank", page: "redeemCompleted", sidebar: "bank", pill: "/guild/banks", loginRequired: true },
+  // Legacy deep-link — BankController opens the mint/redeem modal on Guild Banks.
   { path: "/guild/mint-redeem", controller: "Bank", page: "mintRedeem", sidebar: "bank", loginRequired: true },
 
   // Energy (guild pill nav — infrastructure admin lives under Guild sidebar)

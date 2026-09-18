@@ -10,6 +10,8 @@
  *  - "Pages" don't go through localStorage; restore-on-reload comes from the URL.
  */
 
+import { EVENTS } from "../constants/Events.js";
+
 /** @typedef {{ activate(pageName: string, params: Record<string, string>): Promise<void> | void }} ControllerLike */
 
 /**
@@ -121,6 +123,11 @@ export class MenuPageRouter {
 
     this.current = { controller: route.controller, page: route.page, params, route };
     for (const listener of this._listeners) listener(this.current);
+    window.dispatchEvent(
+      new CustomEvent(EVENTS.ROUTE_CHANGED, {
+        detail: { path: pathOnly || "/", page: route.page, controller: route.controller },
+      }),
+    );
 
     try {
       await controller.activate(route.page, params);

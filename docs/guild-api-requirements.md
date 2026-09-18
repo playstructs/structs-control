@@ -87,6 +87,11 @@ Guild ID used for probes: `0-1`. Unauthenticated probes; catalog routes that exi
 | `GET` | `/grid/all/page/{n}` | GridManager | full grid catalog; normalized to `keys.gridIndex()` |
 | `GET` | `/grid/object/{object_id}/page/{n}` | (not used by SPA) | per-object grid rows; SPA uses bulk index instead |
 | `GET` | `/grid/attribute-type/{attribute_type}/page/{n}` | (not used by SPA) | filter by attribute type |
+| `GET` | `/guild-bank` | BankManager | all guild banks: `{ guild_id, denom, collateral, supply, ratio }[]` |
+| `GET` | `/guild-bank/{guildId}/history?bucket=1d\|1h` | BankManager | ledger volume by bucket/action/denom (30d window) |
+| `GET` | `/inventory/denom/{denom}/page/{n}?limit=` | BankManager | top holders for a denom |
+| `GET` | `/inventory/owner/{ownerType}/{ownerId}` | (available) | all denoms for one owner |
+| `GET` | `/leaderboard/{kind}?order=&limit=` | BankManager | `kind` = player\|guild\|reactor\|substation\|provider |
 
 ### Grid index (SPA)
 
@@ -97,6 +102,16 @@ The admin SPA keeps a warm in-memory index at `keys.gridIndex()`:
 - **Consumers:** Reactors and Substations list pages read capacity/load from the index; player profile still uses bespoke `GET /player/{id}` grid joins.
 - **Limit:** catalog helper caps at 5000 rows (50 × 100). If the grid table grows beyond that, request a guild-scoped grid endpoint from the API team.
 
+### Guild bank (SPA)
+
+The Guild Banks page (`BankController`) no longer waits on a fictional `/guild/{id}/bank/balance`. It uses:
+
+- **`GET /guild-bank`** — pick this guild’s `uguild.*` row for collateral / supply / ratio; full list feeds Top Tokens (by collateral).
+- **`GET /guild-bank/{guildId}/history?bucket=1h`** — net minted/burned and infused/defused volume over the last 24h for period columns (7d period deltas still unavailable).
+- **`GET /inventory/denom/{denom}/page/1`** — Top Accounts + Player Lookup Amount when the player appears in the top page.
+- **`GET /leaderboard/guild?order=collateral.desc`** — cross-guild collateral rank (`#N`) on the Alpha Collateral card.
+
+Writes still go through `store.tx` (`MsgGuildBankMint` / Redeem / ConfiscateAndBurn); invalidation refreshes the keys above.
 
 ### Removed (v0.16)
 
@@ -108,16 +123,13 @@ Player name and avatar updates are chain transactions only. The SPA no longer ca
 
 ## Endpoints we'd like
 
-### Guild bank balances
+### Guild bank (remaining gaps)
 
-The Guild Banks overview and Mint / Redeem page can submit transactions but cannot fully populate collateral / supply / ranking cards without reads. We'd like:
+Now available and wired: `GET /guild-bank`, `GET /guild-bank/{id}/history`, `GET /inventory/denom/...`, `GET /leaderboard/guild`. Still missing for a full Figma match:
 
-- `GET /guild/{guildId}/bank/balance` -- `{ balances: [{ denom, amount }] }` (SPA already calls this as optional)
-- Period deltas for collateral / token supply / ratio (`last_7_days`, `last_24_hours`) and cross-guild ranks for the Alpha Collateral and Token & Collateral Ratio cards
-- `GET /guild/{guildId}/bank/top-accounts` — top token holders for the Top Accounts card
-- `GET /guild/{guildId}/bank/top-tokens` (or network-wide) — Top Tokens card
-- `GET /guild/{guildId}/bank/transactions` — guild-scoped mint/redeem/transfer history (SPA currently shows session TxQueue bank msgs only)
-- Per-player guild-token balances for Player Lookup Amount column
+- Period deltas for collateral / token supply / ratio over **last 7 days** (history is action-volume only, not snapshot deltas)
+- `GET /guild/{guildId}/bank/transactions` (or ledger filtered by guild denom) — guild-scoped mint/redeem/transfer history (SPA still shows session TxQueue bank msgs only)
+- Full per-player guild-token balances for Player Lookup (inventory-by-denom is paginated top holders; roster players outside page 1 still show —)
 
 ### Tx confirmation
 
@@ -133,7 +145,7 @@ The queue paces broadcasts off the `block` GRASS subject (`BlockListener` → `s
 The Guild Overview screen (Figma Flows `1920:64583`) needs richer read surfaces than the current SPA has:
 
 - `GET /guild/{guildId}/power/stats` — document response shape; SPA expects optional fields for total alpha infused and period deltas (`total_alpha_infused`, `last_7_days`, `last_24_hours`, membership deltas).
-- `GET /guild/leaderboard` (or equivalent) — top guilds ranked by total alpha infused with period metrics for the Community Leaderboard card.
+- `GET /leaderboard/guild` — **now available** and wired on Overview Community Leaderboard + Bank collateral rank.
 - `GET /guild/{guildId}/activity` (or GRASS feed) — guild-scoped activity events for the Overview Activity panel (tx queue is session-only; SPA currently merges session txs with guild reactor infusion rows as a stopgap).
 
 ### Energy Grid

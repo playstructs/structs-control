@@ -152,6 +152,7 @@ function mountLayout() {
           store,
           layout: newLayout,
           guildManager,
+          bankManager,
           substationManager,
           reactorManager,
           infusionManager,

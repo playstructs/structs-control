@@ -1,5 +1,6 @@
 import { AbstractViewModel } from "../framework/AbstractViewModel.js";
 import { structsLogoUrl } from "../constants/Brand.js";
+import { maybeToastMintSuccess, syncMintFlowSettled } from "../util/mintFlow.js";
 
 /**
  * Top header (65px). Logo + STRUCTS, search, pending-tx badge, address display,
@@ -22,6 +23,8 @@ export class HeaderViewModel extends AbstractViewModel {
     if (this.store.tx) {
       this._unsubs.push(
         this.store.tx.subscribe(() => {
+          syncMintFlowSettled(this.store);
+          maybeToastMintSuccess(this.router, this.store);
           const next = this.store.tx?.pendingCount() ?? 0;
           if (next !== this.pendingCount) {
             this.pendingCount = next;
