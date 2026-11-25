@@ -59,14 +59,15 @@ Guild ID used for probes: `0-1`. Unauthenticated probes; catalog routes that exi
 | --- | --- | --- | --- |
 | `GET` | `/timestamp` | AuthManager | returns `{ unix_timestamp }` |
 | `POST` | `/auth/login` | AuthManager | sets session cookie |
-| `GET` | `/auth/logout` | AuthManager | clears session cookie |
+| `POST` | `/auth/logout` | AuthManager | clears session cookie (GET is not supported; v0.22 contract) |
 | `GET` | `/auth/player-address/{address}/guild/{guildId}/player-id` | AuthManager | returns `{ player_id }` |
+| `GET` | `/block` | TxQueue readiness gate | indexed height + envelope `meta` (`data_ready`, `transaction_ready`, `protocol`, …); optional — missing → no gate |
 | `GET` | `/guild/this` | OverviewController, Infrastructure | the "default" guild for the API host |
 | `GET` | `/guild/{guildId}` | OverviewController, GuildDetails | full guild record |
 | `GET` | `/guild/{guildId}/roster` | PlayersController | list of player records |
 | `GET` | `/guild/{guildId}/members/count` | Overview | `{ count }` |
 | `GET` | `/guild/{guildId}/power/stats` | Overview | guild power summary |
-| `GET` | `/player/{playerId}` | PlayerProfile | one player; SPA reads `pfp_client_render_attributes` (JSON string) for the layered avatar (optional — falls back to placeholder) |
+| `GET` | `/player/{playerId}` | PlayerProfile | one player; SPA reads `pfp_client_render_attributes` (JSON string) for the layered avatar (optional — falls back to placeholder). v0.22 funds: prefer exact `spendable_alpha_p` / `available_alpha_p` / `vault_address` / `retained_funds_meta` over display `alpha` for spends — unavailable retained evidence is unknown, not zero. |
 | `GET` | `/player-address/player/{playerId}` | PlayerProfile | addresses on file |
 | `GET` | `/infusion/player/{playerId}` | PlayerProfile | one infusion record |
 | `GET` | `/infusion/list/destination/{reactorId}/page/{n}` | ReactorProfile | all player infusions at reactor |
@@ -154,6 +155,11 @@ The Energy Grid screen (Figma Flows `1920:64579`) uses catalog data today. Gaps:
 
 - `GET /substation/{id}/stats/24h` (or GRASS) — substation load deltas for the "Biggest Drop (last 24hr)" activity card (SPA falls back to highest current load).
 - `GET /player/list/guild/{guildId}/page/` with `substation_id`, `load`, `capacity` — would replace aggregating `GET /player/list/substation/{id}/page/` across every substation for Player Lookup (guild roster does not include `substation_id`).
+- Grid catalog / GRASS must emit `connectionCapacityMaximum` (attribute enum **15**, structsd v0.23) so Substation detail can show the live per-player cap without a native LCD query.
+
+### v0.22 / v0.23 readiness
+
+See [`docs/MIGRATION-0.22.md`](./MIGRATION-0.22.md). JsonAjaxer still unwraps `data` for callers, but keeps `lastMeta` and supports `{ envelope: true }` (used by `getBlockSnapshot`). `TxQueue` refuses broadcast when `/block` meta has `transaction_ready: false`. Cookie 401/403 triggers single-flight `AuthManager.reauthenticate`.
 
 ### Energy Permissions
 

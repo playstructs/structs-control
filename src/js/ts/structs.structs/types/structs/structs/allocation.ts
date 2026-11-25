@@ -13,28 +13,15 @@ export const protobufPackage = "structs.structs";
 export interface Allocation {
   id: string;
   type: allocationType;
-  /** Core allocation details */
   sourceObjectId: string;
-  index: number;
+  index: string;
   destinationId: string;
-  /** Who does this currently belong to */
   creator: string;
   controller: string;
-  /** Locking will be needed for IBC */
-  locked: boolean;
 }
 
 function createBaseAllocation(): Allocation {
-  return {
-    id: "",
-    type: 0,
-    sourceObjectId: "",
-    index: 0,
-    destinationId: "",
-    creator: "",
-    controller: "",
-    locked: false,
-  };
+  return { id: "", type: 0, sourceObjectId: "", index: "0", destinationId: "", creator: "", controller: "" };
 }
 
 export const Allocation: MessageFns<Allocation> = {
@@ -48,7 +35,7 @@ export const Allocation: MessageFns<Allocation> = {
     if (message.sourceObjectId !== "") {
       writer.uint32(26).string(message.sourceObjectId);
     }
-    if (message.index !== 0) {
+    if (message.index !== "0") {
       writer.uint32(32).uint64(message.index);
     }
     if (message.destinationId !== "") {
@@ -59,9 +46,6 @@ export const Allocation: MessageFns<Allocation> = {
     }
     if (message.controller !== "") {
       writer.uint32(58).string(message.controller);
-    }
-    if (message.locked !== false) {
-      writer.uint32(64).bool(message.locked);
     }
     return writer;
   },
@@ -102,7 +86,7 @@ export const Allocation: MessageFns<Allocation> = {
             break;
           }
 
-          message.index = longToNumber(reader.uint64());
+          message.index = reader.uint64().toString();
           continue;
         }
         case 5: {
@@ -129,14 +113,6 @@ export const Allocation: MessageFns<Allocation> = {
           message.controller = reader.string();
           continue;
         }
-        case 8: {
-          if (tag !== 64) {
-            break;
-          }
-
-          message.locked = reader.bool();
-          continue;
-        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -151,11 +127,10 @@ export const Allocation: MessageFns<Allocation> = {
       id: isSet(object.id) ? globalThis.String(object.id) : "",
       type: isSet(object.type) ? allocationTypeFromJSON(object.type) : 0,
       sourceObjectId: isSet(object.sourceObjectId) ? globalThis.String(object.sourceObjectId) : "",
-      index: isSet(object.index) ? globalThis.Number(object.index) : 0,
+      index: isSet(object.index) ? globalThis.String(object.index) : "0",
       destinationId: isSet(object.destinationId) ? globalThis.String(object.destinationId) : "",
       creator: isSet(object.creator) ? globalThis.String(object.creator) : "",
       controller: isSet(object.controller) ? globalThis.String(object.controller) : "",
-      locked: isSet(object.locked) ? globalThis.Boolean(object.locked) : false,
     };
   },
 
@@ -170,8 +145,8 @@ export const Allocation: MessageFns<Allocation> = {
     if (message.sourceObjectId !== "") {
       obj.sourceObjectId = message.sourceObjectId;
     }
-    if (message.index !== 0) {
-      obj.index = Math.round(message.index);
+    if (message.index !== "0") {
+      obj.index = message.index;
     }
     if (message.destinationId !== "") {
       obj.destinationId = message.destinationId;
@@ -181,9 +156,6 @@ export const Allocation: MessageFns<Allocation> = {
     }
     if (message.controller !== "") {
       obj.controller = message.controller;
-    }
-    if (message.locked !== false) {
-      obj.locked = message.locked;
     }
     return obj;
   },
@@ -196,11 +168,10 @@ export const Allocation: MessageFns<Allocation> = {
     message.id = object.id ?? "";
     message.type = object.type ?? 0;
     message.sourceObjectId = object.sourceObjectId ?? "";
-    message.index = object.index ?? 0;
+    message.index = object.index ?? "0";
     message.destinationId = object.destinationId ?? "";
     message.creator = object.creator ?? "";
     message.controller = object.controller ?? "";
-    message.locked = object.locked ?? false;
     return message;
   },
 };
@@ -216,17 +187,6 @@ export type DeepPartial<T> = T extends Builtin ? T
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
-
-function longToNumber(int64: { toString(): string }): number {
-  const num = globalThis.Number(int64.toString());
-  if (num > globalThis.Number.MAX_SAFE_INTEGER) {
-    throw new globalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
-  }
-  if (num < globalThis.Number.MIN_SAFE_INTEGER) {
-    throw new globalThis.Error("Value is smaller than Number.MIN_SAFE_INTEGER");
-  }
-  return num;
-}
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

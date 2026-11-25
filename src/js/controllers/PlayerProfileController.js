@@ -7,6 +7,7 @@ import { notify } from "../store/notify.js";
 import { validateForm, required, maxLength, readFormValues } from "../util/validate.js";
 import { keys } from "../store/keys.js";
 import { formatGridAttributeOrDash, formatUnitOrZero } from "../util/unitDisplay.js";
+import { playerTotalCapacity } from "../util/energyGrid.js";
 import { formatCommissionPercent } from "../util/percentDisplay.js";
 import { buildEntityLookup, entityLabel } from "../util/entityLookup.js";
 import { renderEntityRef } from "../util/entityLink.js";
@@ -119,9 +120,15 @@ class PlayerProfileViewModel extends AbstractViewModel {
                 <div class="sg-card__title">Power</div>
                 <dl class="row mb-0">
                   ${dl("Capacity", formatGridAttributeOrDash("capacity", p?.capacity))}
+                  ${dl("Connection capacity", p?.connection_capacity == null ? "—" : formatGridAttributeOrDash("connectionCapacity", p.connection_capacity))}
+                  ${dl("Total capacity", p?.capacity == null && p?.connection_capacity == null ? "—" : formatGridAttributeOrDash("capacity", playerTotalCapacity(p)))}
                   ${dl("Load", formatGridAttributeOrDash("load", p?.load))}
                   ${dl("Ore", formatGridAttributeOrDash("ore", p?.ore))}
-                  ${dl("Alpha", formatUnitOrZero(p?.alpha, "ualpha"))}
+                  ${dl("Alpha (display)", formatUnitOrZero(p?.alpha, "ualpha"))}
+                  ${dl("Spendable (vault)", p?.spendable_alpha_p == null ? "—" : formatUnitOrZero(p.spendable_alpha_p, "ualpha"))}
+                  ${dl("Available", p?.available_alpha_p == null && p?.spendable_alpha_p == null ? "—" : formatUnitOrZero(p?.available_alpha_p ?? p?.spendable_alpha_p, "ualpha"))}
+                  ${dl("Retained", p?.retained_alpha_p == null ? "—" : formatUnitOrZero(p.retained_alpha_p, "ualpha"))}
+                  ${dl("Vault address", p?.vault_address || "—")}
                 </dl>
               </div>
             </div>

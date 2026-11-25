@@ -102,35 +102,46 @@ export class BankManager {
   }
 
   /**
-   * @param {{ amountAlpha: string | number, amountToken: string | number }} body
+   * @param {{
+   *   amountAlpha: string | number,
+   *   amountToken: string | number,
+   *   guildId?: string,
+   * }} body
    */
   buildMint(body) {
     return buildGuildBankMint({
       creator: this._creator(),
       amountAlpha: body.amountAlpha,
       amountToken: body.amountToken,
+      guildId: body.guildId,
     });
   }
 
   /**
-   * @param {{ amount: string, denom: string }} body
+   * @param {{ amount: string, denom: string, minAmountAlpha?: string | number }} body
    */
   buildRedeem(body) {
     return buildGuildBankRedeem({
       creator: this._creator(),
       amount: body.amount,
       denom: body.denom,
+      minAmountAlpha: body.minAmountAlpha,
     });
   }
 
   /**
-   * @param {{ fromAddress: string, amountToken: string | number }} body
+   * @param {{
+   *   fromAddress: string,
+   *   amountToken: string | number,
+   *   guildId?: string,
+   * }} body
    */
   buildConfiscateAndBurn(body) {
     return buildGuildBankConfiscateAndBurn({
       creator: this._creator(),
       fromAddress: body.fromAddress,
       amountToken: body.amountToken,
+      guildId: body.guildId,
     });
   }
 }

@@ -35,11 +35,13 @@ import { TxQueue } from "./store/TxQueue.js";
 import { Session } from "./store/session.js";
 import { InvalidationBridge } from "./store/invalidationBridge.js";
 import { notify } from "./store/notify.js";
+import { isTransactionReady, transactionNotReadyMessage } from "./util/protocolReadiness.js";
 
 import { GuildAPI } from "./api/GuildAPI.js";
 import { WalletManager } from "./managers/WalletManager.js";
 import { SigningClientManager } from "./managers/SigningClientManager.js";
 import { AuthManager } from "./managers/AuthManager.js";
+import { GuildAPIError } from "./errors/GuildAPIError.js";
 import { GuildManager } from "./managers/GuildManager.js";
 import { PlayerManager } from "./managers/PlayerManager.js";
 import { SubstationManager } from "./managers/SubstationManager.js";
@@ -101,6 +103,20 @@ const guildAPI = new GuildAPI({ baseUrl });
 const walletManager = new WalletManager();
 const signingClientManager = new SigningClientManager(store);
 const authManager = new AuthManager({ guildAPI, walletManager, signingClientManager, store });
+guildAPI.setReauthenticator(() => authManager.reauthenticate());
+guildAPI.ajax.registerOptional("/block");
+store.tx?.setAssertTransactionReady(async () => {
+  try {
+    const snap = await guildAPI.getBlockSnapshot();
+    if (!isTransactionReady(snap.meta)) {
+      throw new Error(transactionNotReadyMessage(snap.meta));
+    }
+  } catch (e) {
+    if (e instanceof GuildAPIError && e.missing) return;
+    if (e instanceof Error && /Indexed protocol state unavailable/i.test(e.message)) return;
+    throw e;
+  }
+});
 
 // -- Domain managers ----------------------------------------------------------
 

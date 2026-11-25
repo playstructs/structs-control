@@ -17,6 +17,10 @@ export class GuildAPI {
   constructor(options = {}) {
     this.baseUrl = options.baseUrl ?? "/api";
     this.ajax = new JsonAjaxer({ baseUrl: this.baseUrl });
+    /** @type {null | (() => Promise<boolean>)} */
+    this.reauthenticator = null;
+    /** @type {Promise<boolean> | null} */
+    this.sessionRecovery = null;
 
     const optional = [
       "/reactor/guild/",
@@ -42,10 +46,61 @@ export class GuildAPI {
 
   // -- Auth + bootstrap -------------------------------------------------------
 
+  /**
+   * Install the callback that restores an expired cookie session. Wired at
+   * bootstrap because signing a fresh login needs the wallet above this layer.
+   * @param {() => Promise<boolean>} reauthenticator
+   */
+  setReauthenticator(reauthenticator) {
+    this.reauthenticator = reauthenticator;
+    this.ajax.onUnauthorized = () => this.recoverSession();
+  }
+
+  /**
+   * Collapse concurrent 401/403s onto a single re-login (webapp pattern).
+   * @returns {Promise<boolean>}
+   */
+  recoverSession() {
+    if (!this.reauthenticator) return Promise.resolve(false);
+    if (!this.sessionRecovery) {
+      this.sessionRecovery = Promise.resolve()
+        .then(() => this.reauthenticator())
+        .catch((error) => {
+          console.warn("[GuildAPI] session recovery failed:", error);
+          return false;
+        })
+        .finally(() => {
+          this.sessionRecovery = null;
+        });
+    }
+    return this.sessionRecovery;
+  }
+
+  /** Most recent envelope `meta` from any successful Guild API call. */
+  get lastMeta() {
+    return this.ajax.lastMeta;
+  }
+
   /** @returns {Promise<string>} unix timestamp string */
   async getTimestamp() {
     const data = await this.ajax.get(`/timestamp`);
     return String(data?.unix_timestamp ?? "");
+  }
+
+  /**
+   * Indexed block + protocol readiness. Always fetched fresh (not Store-cached)
+   * so signing rules are never selected from a stale snapshot.
+   * @returns {Promise<{ success: true, data: unknown, meta: Record<string, unknown> }>}
+   */
+  async getBlockSnapshot() {
+    const response = await this.ajax.get(`/block`, { envelope: true });
+    if (!response?.meta || typeof response.meta !== "object") {
+      throw new GuildAPIError("Indexed protocol state unavailable", {
+        status: 0,
+        url: `${this.baseUrl}/block`,
+      });
+    }
+    return response;
   }
 
   /**
@@ -64,11 +119,16 @@ export class GuildAPI {
    * @param {{ address: string, pubkey: string, guild_id: string, unix_timestamp: string, signature: string }} body
    */
   async login(body) {
-    return await this.ajax.post(`/auth/login`, body);
+    // Never recurse into session recovery while establishing a session.
+    return await this.ajax.post(`/auth/login`, body, { reauthenticate: false });
   }
 
+  /**
+   * Clear the session cookie. POST only — GET /auth/logout is not supported
+   * (structsd/webapp 0.22 migration contract).
+   */
   async logout() {
-    return await this.ajax.get(`/auth/logout`);
+    return await this.ajax.post(`/auth/logout`, {}, { reauthenticate: false });
   }
 
   // -- Guild ------------------------------------------------------------------

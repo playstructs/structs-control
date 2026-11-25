@@ -99,7 +99,7 @@ references/       Read-only clones of structs-ai + structs-webapp (see above)
 - **A new domain manager**: `npm run new:manager`.
 - **Anything that writes to chain state**: read `docs/TRANSACTIONS.md` first — the full guide to issuing, monitoring, reviewing, and acting on transactions via the `store.tx` queue.
 
-Full recipes in `docs/PATTERNS.md`. Architecture in `docs/ARCHITECTURE.md`. Event catalog in `docs/EVENTS.md`. Transaction system in `docs/TRANSACTIONS.md`.
+Full recipes in `docs/PATTERNS.md`. Architecture in `docs/ARCHITECTURE.md`. Event catalog in `docs/EVENTS.md`. Transaction system in `docs/TRANSACTIONS.md`. Chain/client migration (structsd v0.22/v0.23) in `docs/MIGRATION-0.22.md`.
 
 ## Run / build / test
 

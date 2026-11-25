@@ -9,16 +9,46 @@ import { BinaryReader, BinaryWriter } from "@bufbuild/protobuf/wire";
 
 export const protobufPackage = "structs.structs";
 
-/** Params defines the parameters for the module. */
 export interface Params {
+  guildCharterDifficultyRange: string;
+  guildCharterReactorAge: string;
+  reactorStakeCapBps: string;
+  reactorStakeCapMinValidators: string;
+  diversityMaxBonusBps: string;
+  diversityTargetExtraReactors: string;
 }
 
 function createBaseParams(): Params {
-  return {};
+  return {
+    guildCharterDifficultyRange: "0",
+    guildCharterReactorAge: "0",
+    reactorStakeCapBps: "0",
+    reactorStakeCapMinValidators: "0",
+    diversityMaxBonusBps: "0",
+    diversityTargetExtraReactors: "0",
+  };
 }
 
 export const Params: MessageFns<Params> = {
-  encode(_: Params, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+  encode(message: Params, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.guildCharterDifficultyRange !== "0") {
+      writer.uint32(8).uint64(message.guildCharterDifficultyRange);
+    }
+    if (message.guildCharterReactorAge !== "0") {
+      writer.uint32(16).uint64(message.guildCharterReactorAge);
+    }
+    if (message.reactorStakeCapBps !== "0") {
+      writer.uint32(24).uint64(message.reactorStakeCapBps);
+    }
+    if (message.reactorStakeCapMinValidators !== "0") {
+      writer.uint32(32).uint64(message.reactorStakeCapMinValidators);
+    }
+    if (message.diversityMaxBonusBps !== "0") {
+      writer.uint32(40).uint64(message.diversityMaxBonusBps);
+    }
+    if (message.diversityTargetExtraReactors !== "0") {
+      writer.uint32(48).uint64(message.diversityTargetExtraReactors);
+    }
     return writer;
   },
 
@@ -29,6 +59,54 @@ export const Params: MessageFns<Params> = {
     while (reader.pos < end) {
       const tag = reader.uint32();
       switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.guildCharterDifficultyRange = reader.uint64().toString();
+          continue;
+        }
+        case 2: {
+          if (tag !== 16) {
+            break;
+          }
+
+          message.guildCharterReactorAge = reader.uint64().toString();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.reactorStakeCapBps = reader.uint64().toString();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.reactorStakeCapMinValidators = reader.uint64().toString();
+          continue;
+        }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.diversityMaxBonusBps = reader.uint64().toString();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.diversityTargetExtraReactors = reader.uint64().toString();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -38,20 +116,59 @@ export const Params: MessageFns<Params> = {
     return message;
   },
 
-  fromJSON(_: any): Params {
-    return {};
+  fromJSON(object: any): Params {
+    return {
+      guildCharterDifficultyRange: isSet(object.guildCharterDifficultyRange)
+        ? globalThis.String(object.guildCharterDifficultyRange)
+        : "0",
+      guildCharterReactorAge: isSet(object.guildCharterReactorAge)
+        ? globalThis.String(object.guildCharterReactorAge)
+        : "0",
+      reactorStakeCapBps: isSet(object.reactorStakeCapBps) ? globalThis.String(object.reactorStakeCapBps) : "0",
+      reactorStakeCapMinValidators: isSet(object.reactorStakeCapMinValidators)
+        ? globalThis.String(object.reactorStakeCapMinValidators)
+        : "0",
+      diversityMaxBonusBps: isSet(object.diversityMaxBonusBps) ? globalThis.String(object.diversityMaxBonusBps) : "0",
+      diversityTargetExtraReactors: isSet(object.diversityTargetExtraReactors)
+        ? globalThis.String(object.diversityTargetExtraReactors)
+        : "0",
+    };
   },
 
-  toJSON(_: Params): unknown {
+  toJSON(message: Params): unknown {
     const obj: any = {};
+    if (message.guildCharterDifficultyRange !== "0") {
+      obj.guildCharterDifficultyRange = message.guildCharterDifficultyRange;
+    }
+    if (message.guildCharterReactorAge !== "0") {
+      obj.guildCharterReactorAge = message.guildCharterReactorAge;
+    }
+    if (message.reactorStakeCapBps !== "0") {
+      obj.reactorStakeCapBps = message.reactorStakeCapBps;
+    }
+    if (message.reactorStakeCapMinValidators !== "0") {
+      obj.reactorStakeCapMinValidators = message.reactorStakeCapMinValidators;
+    }
+    if (message.diversityMaxBonusBps !== "0") {
+      obj.diversityMaxBonusBps = message.diversityMaxBonusBps;
+    }
+    if (message.diversityTargetExtraReactors !== "0") {
+      obj.diversityTargetExtraReactors = message.diversityTargetExtraReactors;
+    }
     return obj;
   },
 
   create<I extends Exact<DeepPartial<Params>, I>>(base?: I): Params {
     return Params.fromPartial(base ?? ({} as any));
   },
-  fromPartial<I extends Exact<DeepPartial<Params>, I>>(_: I): Params {
+  fromPartial<I extends Exact<DeepPartial<Params>, I>>(object: I): Params {
     const message = createBaseParams();
+    message.guildCharterDifficultyRange = object.guildCharterDifficultyRange ?? "0";
+    message.guildCharterReactorAge = object.guildCharterReactorAge ?? "0";
+    message.reactorStakeCapBps = object.reactorStakeCapBps ?? "0";
+    message.reactorStakeCapMinValidators = object.reactorStakeCapMinValidators ?? "0";
+    message.diversityMaxBonusBps = object.diversityMaxBonusBps ?? "0";
+    message.diversityTargetExtraReactors = object.diversityTargetExtraReactors ?? "0";
     return message;
   },
 };
@@ -67,6 +184,10 @@ export type DeepPartial<T> = T extends Builtin ? T
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
+
+function isSet(value: any): boolean {
+  return value !== null && value !== undefined;
+}
 
 export interface MessageFns<T> {
   encode(message: T, writer?: BinaryWriter): BinaryWriter;

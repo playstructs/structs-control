@@ -22,10 +22,11 @@ import {
   parsePlayerIdsParam,
   perPlayerDraw,
   percentChange,
+  playerCapacityPercent,
   serializePlayerIdsParam,
   substationGridAttrs,
 } from "../util/energyGrid.js";
-import { coalesceNumeric } from "../util/unitDisplay.js";
+import { coalesceNumeric, formatGridAttribute } from "../util/unitDisplay.js";
 
 const SUB_PREFIX = "s.";
 const PLAYER_PREFIX = "p.";
@@ -148,6 +149,13 @@ function substationColumns(gridManager, migrating = [], impactColumns = false) {
       },
       align: "end",
       render: (v) => (v == null ? "—" : `${v}%`),
+    },
+    {
+      id: "connCapMax",
+      label: "Conn Cap Max",
+      get: (r) => substationGridAttrs(r, gridManager).connectionCapacityMaximum,
+      render: (v) => (v == null || v === "" ? "—" : formatGridAttribute("connectionCapacityMaximum", v)),
+      align: "end",
     },
     {
       id: "powerIn",
@@ -754,10 +762,7 @@ class EnergyGridSuccessViewModel extends AbstractViewModel {
 
 /** @param {import("../types/api.js").PlayerData} player */
 function playerCapacityPct(player) {
-  const cap = coalesceNumeric(player.capacity, 0);
-  const load = coalesceNumeric(player.load, 0);
-  if (cap <= 0) return null;
-  return Math.round((load / cap) * 100);
+  return playerCapacityPercent(player);
 }
 
 function escapeHtml(s) {

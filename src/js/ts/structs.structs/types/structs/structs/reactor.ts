@@ -15,10 +15,20 @@ export interface Reactor {
   guildId: string;
   defaultCommission: string;
   rawAddress: Uint8Array;
+  owner: string;
+  guildCharterEligibleHeight: string;
 }
 
 function createBaseReactor(): Reactor {
-  return { id: "", validator: "", guildId: "", defaultCommission: "", rawAddress: new Uint8Array(0) };
+  return {
+    id: "",
+    validator: "",
+    guildId: "",
+    defaultCommission: "",
+    rawAddress: new Uint8Array(0),
+    owner: "",
+    guildCharterEligibleHeight: "0",
+  };
 }
 
 export const Reactor: MessageFns<Reactor> = {
@@ -37,6 +47,12 @@ export const Reactor: MessageFns<Reactor> = {
     }
     if (message.rawAddress.length !== 0) {
       writer.uint32(42).bytes(message.rawAddress);
+    }
+    if (message.owner !== "") {
+      writer.uint32(50).string(message.owner);
+    }
+    if (message.guildCharterEligibleHeight !== "0") {
+      writer.uint32(56).uint64(message.guildCharterEligibleHeight);
     }
     return writer;
   },
@@ -88,6 +104,22 @@ export const Reactor: MessageFns<Reactor> = {
           message.rawAddress = reader.bytes();
           continue;
         }
+        case 6: {
+          if (tag !== 50) {
+            break;
+          }
+
+          message.owner = reader.string();
+          continue;
+        }
+        case 7: {
+          if (tag !== 56) {
+            break;
+          }
+
+          message.guildCharterEligibleHeight = reader.uint64().toString();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -104,6 +136,10 @@ export const Reactor: MessageFns<Reactor> = {
       guildId: isSet(object.guildId) ? globalThis.String(object.guildId) : "",
       defaultCommission: isSet(object.defaultCommission) ? globalThis.String(object.defaultCommission) : "",
       rawAddress: isSet(object.rawAddress) ? bytesFromBase64(object.rawAddress) : new Uint8Array(0),
+      owner: isSet(object.owner) ? globalThis.String(object.owner) : "",
+      guildCharterEligibleHeight: isSet(object.guildCharterEligibleHeight)
+        ? globalThis.String(object.guildCharterEligibleHeight)
+        : "0",
     };
   },
 
@@ -124,6 +160,12 @@ export const Reactor: MessageFns<Reactor> = {
     if (message.rawAddress.length !== 0) {
       obj.rawAddress = base64FromBytes(message.rawAddress);
     }
+    if (message.owner !== "") {
+      obj.owner = message.owner;
+    }
+    if (message.guildCharterEligibleHeight !== "0") {
+      obj.guildCharterEligibleHeight = message.guildCharterEligibleHeight;
+    }
     return obj;
   },
 
@@ -137,6 +179,8 @@ export const Reactor: MessageFns<Reactor> = {
     message.guildId = object.guildId ?? "";
     message.defaultCommission = object.defaultCommission ?? "";
     message.rawAddress = object.rawAddress ?? new Uint8Array(0);
+    message.owner = object.owner ?? "";
+    message.guildCharterEligibleHeight = object.guildCharterEligibleHeight ?? "0";
     return message;
   },
 };

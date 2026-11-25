@@ -13,6 +13,26 @@ export function capacityPercent(load, capacity) {
 }
 
 /**
+ * Player total capacity = base capacity + connection share (post–v0.22).
+ * Missing connection_capacity is treated as 0 (not unknown) because the API
+ * may omit the field on older rows; display layers still show "—" when both
+ * capacity and connection_capacity are absent.
+ * @param {{ capacity?: unknown, connection_capacity?: unknown }} player
+ * @returns {number}
+ */
+export function playerTotalCapacity(player) {
+  return coalesceNumeric(player?.capacity, 0) + coalesceNumeric(player?.connection_capacity, 0);
+}
+
+/**
+ * @param {{ capacity?: unknown, connection_capacity?: unknown, load?: unknown }} player
+ * @returns {number | null}
+ */
+export function playerCapacityPercent(player) {
+  return capacityPercent(player?.load, playerTotalCapacity(player));
+}
+
+/**
  * @param {unknown} load
  * @param {unknown} playerCount
  * @returns {number}
@@ -93,6 +113,8 @@ export function substationGridAttrs(row, gridManager) {
   return {
     capacity: grid.capacity ?? row.capacity,
     load: grid.load ?? row.load,
+    connectionCapacity: grid.connectionCapacity,
+    connectionCapacityMaximum: grid.connectionCapacityMaximum,
     powerIn: row.energy_in ?? grid.power,
     powerOut: row.energy_out,
   };

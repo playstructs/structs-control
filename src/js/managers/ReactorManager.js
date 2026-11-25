@@ -33,7 +33,13 @@ export class ReactorManager {
   }
 
   /**
-   * @param {{ validatorAddress: string, amountAlpha: string | number, delegatorAddress?: string, reactorId?: string }} body
+   * @param {{
+   *   validatorAddress: string,
+   *   amountAlpha: string | number,
+   *   delegatorAddress?: string,
+   *   reactorId?: string,
+   *   ownerId?: string,
+   * }} body
    */
   buildInfuse(body) {
     return buildReactorInfuse({
@@ -41,11 +47,17 @@ export class ReactorManager {
       delegatorAddress: body.delegatorAddress ?? this._delegatorAddress(),
       validatorAddress: body.validatorAddress,
       amountAlpha: body.amountAlpha,
+      ownerId: body.ownerId ?? this.store.session?.data?.playerId ?? "",
     });
   }
 
   /**
-   * @param {{ validatorAddress: string, amountAlpha: string | number, delegatorAddress?: string, reactorId?: string }} body
+   * @param {{
+   *   validatorAddress: string,
+   *   amountAlpha: string | number,
+   *   delegatorAddress?: string,
+   *   reactorId?: string,
+   * }} body
    */
   buildDefuse(body) {
     return buildReactorDefuse({

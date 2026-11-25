@@ -13,10 +13,22 @@ export interface Substation {
   id: string;
   owner: string;
   creator: string;
+  name: string;
+  pfp: string;
+  deletionPending: boolean;
+  deletionMigrationSubstationId: string;
 }
 
 function createBaseSubstation(): Substation {
-  return { id: "", owner: "", creator: "" };
+  return {
+    id: "",
+    owner: "",
+    creator: "",
+    name: "",
+    pfp: "",
+    deletionPending: false,
+    deletionMigrationSubstationId: "",
+  };
 }
 
 export const Substation: MessageFns<Substation> = {
@@ -29,6 +41,18 @@ export const Substation: MessageFns<Substation> = {
     }
     if (message.creator !== "") {
       writer.uint32(26).string(message.creator);
+    }
+    if (message.name !== "") {
+      writer.uint32(34).string(message.name);
+    }
+    if (message.pfp !== "") {
+      writer.uint32(42).string(message.pfp);
+    }
+    if (message.deletionPending !== false) {
+      writer.uint32(48).bool(message.deletionPending);
+    }
+    if (message.deletionMigrationSubstationId !== "") {
+      writer.uint32(58).string(message.deletionMigrationSubstationId);
     }
     return writer;
   },
@@ -64,6 +88,38 @@ export const Substation: MessageFns<Substation> = {
           message.creator = reader.string();
           continue;
         }
+        case 4: {
+          if (tag !== 34) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.pfp = reader.string();
+          continue;
+        }
+        case 6: {
+          if (tag !== 48) {
+            break;
+          }
+
+          message.deletionPending = reader.bool();
+          continue;
+        }
+        case 7: {
+          if (tag !== 58) {
+            break;
+          }
+
+          message.deletionMigrationSubstationId = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -78,6 +134,12 @@ export const Substation: MessageFns<Substation> = {
       id: isSet(object.id) ? globalThis.String(object.id) : "",
       owner: isSet(object.owner) ? globalThis.String(object.owner) : "",
       creator: isSet(object.creator) ? globalThis.String(object.creator) : "",
+      name: isSet(object.name) ? globalThis.String(object.name) : "",
+      pfp: isSet(object.pfp) ? globalThis.String(object.pfp) : "",
+      deletionPending: isSet(object.deletionPending) ? globalThis.Boolean(object.deletionPending) : false,
+      deletionMigrationSubstationId: isSet(object.deletionMigrationSubstationId)
+        ? globalThis.String(object.deletionMigrationSubstationId)
+        : "",
     };
   },
 
@@ -92,6 +154,18 @@ export const Substation: MessageFns<Substation> = {
     if (message.creator !== "") {
       obj.creator = message.creator;
     }
+    if (message.name !== "") {
+      obj.name = message.name;
+    }
+    if (message.pfp !== "") {
+      obj.pfp = message.pfp;
+    }
+    if (message.deletionPending !== false) {
+      obj.deletionPending = message.deletionPending;
+    }
+    if (message.deletionMigrationSubstationId !== "") {
+      obj.deletionMigrationSubstationId = message.deletionMigrationSubstationId;
+    }
     return obj;
   },
 
@@ -103,6 +177,10 @@ export const Substation: MessageFns<Substation> = {
     message.id = object.id ?? "";
     message.owner = object.owner ?? "";
     message.creator = object.creator ?? "";
+    message.name = object.name ?? "";
+    message.pfp = object.pfp ?? "";
+    message.deletionPending = object.deletionPending ?? false;
+    message.deletionMigrationSubstationId = object.deletionMigrationSubstationId ?? "";
     return message;
   },
 };

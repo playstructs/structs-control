@@ -657,7 +657,11 @@ class GuildBanksViewModel extends AbstractViewModel {
 
     const enqueued = await captureEnqueuedTx(() =>
       this.store.tx?.enqueue(
-        this.bankManager.buildMint({ amountAlpha: result.amountAlpha, amountToken: result.amountToken }),
+        this.bankManager.buildMint({
+          amountAlpha: result.amountAlpha,
+          amountToken: result.amountToken,
+          guildId: this.guildId,
+        }),
         { invalidate },
       ),
     );
@@ -705,6 +709,7 @@ class GuildBanksViewModel extends AbstractViewModel {
       this.bankManager.buildConfiscateAndBurn({
         fromAddress: result.fromAddress,
         amountToken: result.amountToken,
+        guildId: this.guildId,
       }),
       { invalidate: this.bankManager.invalidateKeys(this.guildId, bank?.denom) },
     );

@@ -74,7 +74,13 @@ export function validate(schema, value, path = "$") {
 
 /**
  * Envelope shape from the Guild API. Every response is wrapped like this.
- * @typedef {{ success: boolean, errors?: string[], data?: unknown }} Envelope
+ * `meta` (protocol readiness, cache epoch, etc.) is optional and preserved by JsonAjaxer.
+ * @typedef {{
+ *   success: boolean,
+ *   errors?: string[] | Record<string, string>,
+ *   data?: unknown,
+ *   meta?: Record<string, unknown> | null,
+ * }} Envelope
  */
 
 /** @type {Record<string, unknown>} */
