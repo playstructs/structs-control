@@ -21,16 +21,24 @@ function normalizeApiErrors(errors, fallback = "Request failed") {
 }
 
 /**
+ * @typedef {{
+ *   reauthenticate?: boolean,
+ *   envelope?: boolean,
+ * }} RequestOptions
+ */
+
+/**
  * HTTP request wrapper for the Guild API.
  *
  * Differences from the structs-webapp version:
  *  - All fetches include `credentials: "include"` (cookie auth).
- *  - Envelope `{ success, errors[], data }` is validated and unwrapped here, so
- *    callers always receive `data` or get a `GuildAPIError` thrown.
+ *  - Envelope `{ success, errors[], data, meta? }` is validated; callers receive
+ *    `data` by default (or `{ data, meta }` when `envelope: true`).
+ *  - `lastMeta` always reflects the most recent successful response meta.
+ *  - 401/403 triggers `onUnauthorized` once (single-flight via GuildAPI) then retries.
  *  - 404 responses on configured "optional" endpoints resolve to a
  *    `GuildAPIError { missing: true }`, which the QueryClient maps to a
  *    `Resource{status:"missing"}` for graceful degradation in the UI.
- *  - All other non-2xx responses throw `GuildAPIError` with HTTP status + body.
  *
  * No other module should call `fetch` directly. ESLint enforces this.
  */
@@ -42,6 +50,14 @@ export class JsonAjaxer {
     this.baseUrl = options.baseUrl ?? "";
     /** @type {Set<string>} URL patterns that should resolve to "missing" on 404 */
     this._optionalPatterns = new Set();
+    /**
+     * Invoked on 401/403. Resolving true means the session was restored and the
+     * request should be sent again. Wired by GuildAPI.setReauthenticator.
+     * @type {null | (() => Promise<boolean>)}
+     */
+    this.onUnauthorized = null;
+    /** Most recent successful envelope `meta` (protocol readiness, etc.). */
+    this.lastMeta = /** @type {Record<string, unknown> | null} */ (null);
   }
 
   /**
@@ -68,29 +84,32 @@ export class JsonAjaxer {
   }
 
   /**
+   * @param {Response} response
+   * @returns {boolean}
+   */
+  isAuthFailure(response) {
+    return response.status === 401 || response.status === 403;
+  }
+
+  /**
    * @param {string} method
    * @param {string} path
    * @param {unknown} [body]
+   * @param {RequestOptions} [options]
    * @returns {Promise<any>}
    */
-  async request(method, path, body) {
+  async request(method, path, body, options = {}) {
+    const reauthenticate = options.reauthenticate !== false;
+    const wantEnvelope = Boolean(options.envelope);
     const url = this.baseUrl + path;
-    /** @type {RequestInit} */
-    const init = {
-      method,
-      credentials: "include",
-      redirect: "follow",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-    };
-    if (body !== undefined) init.body = JSON.stringify(body);
 
-    let response;
-    try {
-      response = await fetch(url, init);
-    } catch (e) {
-      throw new GuildAPIError(`Network error: ${e instanceof Error ? e.message : String(e)}`, {
-        url,
-      });
+    let response = await this._send(method, url, body);
+
+    if (this.isAuthFailure(response) && this.onUnauthorized && reauthenticate) {
+      const restored = await this.onUnauthorized();
+      if (restored) {
+        response = await this._send(method, url, body);
+      }
     }
 
     if (response.status === 404 && this._isOptional(path)) {
@@ -98,6 +117,13 @@ export class JsonAjaxer {
         status: 404,
         url,
         missing: true,
+      });
+    }
+
+    if (this.isAuthFailure(response)) {
+      throw new GuildAPIError(`Authentication required for ${path}`, {
+        status: response.status,
+        url,
       });
     }
 
@@ -129,19 +155,72 @@ export class JsonAjaxer {
       throw new GuildAPIError(errors[0], { status: response.status, errors, url });
     }
 
+    const meta =
+      json.meta && typeof json.meta === "object" && !Array.isArray(json.meta)
+        ? /** @type {Record<string, unknown>} */ (json.meta)
+        : null;
+    this.lastMeta = meta;
+
+    if (wantEnvelope) {
+      return { success: true, errors: json.errors ?? [], data: json.data, meta };
+    }
     return json.data;
   }
 
-  get(path) {
-    return this.request("GET", path);
+  /**
+   * @param {string} method
+   * @param {string} url
+   * @param {unknown} [body]
+   * @returns {Promise<Response>}
+   */
+  async _send(method, url, body) {
+    /** @type {RequestInit} */
+    const init = {
+      method,
+      credentials: "include",
+      redirect: "follow",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+    };
+    if (body !== undefined) init.body = JSON.stringify(body);
+
+    try {
+      return await fetch(url, init);
+    } catch (e) {
+      throw new GuildAPIError(`Network error: ${e instanceof Error ? e.message : String(e)}`, {
+        url,
+      });
+    }
   }
-  post(path, body) {
-    return this.request("POST", path, body);
+
+  /**
+   * @param {string} path
+   * @param {RequestOptions} [options]
+   */
+  get(path, options) {
+    return this.request("GET", path, undefined, options);
   }
-  put(path, body) {
-    return this.request("PUT", path, body);
+  /**
+   * @param {string} path
+   * @param {unknown} body
+   * @param {RequestOptions} [options]
+   */
+  post(path, body, options) {
+    return this.request("POST", path, body, options);
   }
-  delete(path, body) {
-    return this.request("DELETE", path, body);
+  /**
+   * @param {string} path
+   * @param {unknown} body
+   * @param {RequestOptions} [options]
+   */
+  put(path, body, options) {
+    return this.request("PUT", path, body, options);
+  }
+  /**
+   * @param {string} path
+   * @param {unknown} body
+   * @param {RequestOptions} [options]
+   */
+  delete(path, body, options) {
+    return this.request("DELETE", path, body, options);
   }
 }

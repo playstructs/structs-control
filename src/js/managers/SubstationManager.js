@@ -1,6 +1,9 @@
 import { GuildAPIError } from "../errors/GuildAPIError.js";
 import { keys } from "../store/keys.js";
-import { buildSubstationPlayerMigrate } from "../util/txMessages.js";
+import {
+  buildSubstationPlayerMigrate,
+  buildSubstationUpdateConnectionCapacityMaximum,
+} from "../util/txMessages.js";
 
 export class SubstationManager {
   /**
@@ -88,5 +91,22 @@ export class SubstationManager {
     for (const id of playerIds) invalidate.add(keys.player(id));
     for (const id of sourceSubstationIds) invalidate.add(keys.substationPlayers(id));
     return this.store.tx?.enqueue(msg, { invalidate: [...invalidate] });
+  }
+
+  /**
+   * Cap per-player connection draw (structsd v0.23.0). Pass 0 to clear.
+   * @param {string} creator
+   * @param {string} substationId
+   * @param {string | number} connectionCapacityMaximum
+   */
+  enqueueConnectionCapacityMaximum(creator, substationId, connectionCapacityMaximum) {
+    const msg = buildSubstationUpdateConnectionCapacityMaximum({
+      creator,
+      substationId,
+      connectionCapacityMaximum,
+    });
+    return this.store.tx?.enqueue(msg, {
+      invalidate: [keys.substation(substationId), keys.substationList(), keys.gridIndex()],
+    });
   }
 }

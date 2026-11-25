@@ -22,6 +22,15 @@ export const keys = {
   guildMembersCount: (guildId) => Object.freeze(["guild", String(guildId), "members-count"]),
   guildsDirectory: () => Object.freeze(["guild", "directory"]),
   guildInfusions: (guildId) => Object.freeze(["guild", String(guildId), "infusions"]),
+  /** Normalized row for this guild from `/guild-bank` (collateral / supply / ratio / denom). */
+  guildBankBalance: (guildId) => Object.freeze(["guild", String(guildId), "bank-balance"]),
+  /** Full `/guild-bank` catalog (all guilds × denoms). */
+  guildBankAll: () => Object.freeze(["guild-bank", "all"]),
+  guildBankHistory: (guildId, bucket = "1d") =>
+    Object.freeze(["guild", String(guildId), "bank-history", String(bucket)]),
+  inventoryByDenom: (denom, page = 1) =>
+    Object.freeze(["inventory", "denom", String(denom), "page", Number(page)]),
+  leaderboard: (kind) => Object.freeze(["leaderboard", String(kind)]),
 
   player: (playerId) => Object.freeze(["player", String(playerId)]),
   playerInfusion: (playerId) => Object.freeze(["player", String(playerId), "infusion"]),

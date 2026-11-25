@@ -4,6 +4,7 @@ import {
   overviewActivityItem,
   overviewActivitySeeAll,
   overviewCardHeader,
+  overviewLeaderboardRow,
   overviewMetricRow,
 } from "../view_models/components/OverviewCard.js";
 import { keys } from "../store/keys.js";
@@ -17,6 +18,7 @@ export class OverviewController extends AbstractController {
    *   store: import("../store/Store.js").Store,
    *   layout: import("../view_models/LayoutViewModel.js").LayoutViewModel,
    *   guildManager: import("../managers/GuildManager.js").GuildManager,
+   *   bankManager?: import("../managers/BankManager.js").BankManager,
    *   substationManager?: import("../managers/SubstationManager.js").SubstationManager,
    *   reactorManager?: import("../managers/ReactorManager.js").ReactorManager,
    *   infusionManager?: import("../managers/InfusionManager.js").InfusionManager,
@@ -26,6 +28,7 @@ export class OverviewController extends AbstractController {
     super("Overview", deps.store);
     this.layout = deps.layout;
     this.guildManager = deps.guildManager;
+    this.bankManager = deps.bankManager;
     this.substationManager = deps.substationManager;
     this.reactorManager = deps.reactorManager;
     this.infusionManager = deps.infusionManager;
@@ -38,6 +41,7 @@ export class OverviewController extends AbstractController {
     void this.guildManager.fetchMembersCount(session.guildId);
     void this.guildManager.fetchPowerStats(session.guildId);
     void this.guildManager.fetchRoster(session.guildId);
+    void this.bankManager?.fetchGuildLeaderboard();
     void this.substationManager?.fetchList();
     void this.reactorManager?.fetchList(session.guildId);
     void this.infusionManager?.fetchGuildInfusions(session.guildId);
@@ -66,6 +70,7 @@ class OverviewViewModel extends AbstractViewModel {
     this.subscribe(this.store, keys.guildRoster(this.guildId));
     this.subscribe(this.store, keys.reactorList(this.guildId));
     this.subscribe(this.store, keys.guildInfusions(this.guildId));
+    this.subscribe(this.store, keys.leaderboard("guild"));
     if (this.store.tx) {
       this._unsubs.push(this.store.tx.subscribe(() => this.update()));
     }
@@ -75,6 +80,7 @@ class OverviewViewModel extends AbstractViewModel {
     const guild = this.store.read(keys.guild(this.guildId));
     const memberCount = this.store.read(keys.guildMembersCount(this.guildId));
     const powerStats = this.store.read(keys.guildPowerStats(this.guildId));
+    const leaderboardRes = this.store.read(keys.leaderboard("guild"));
 
     const guildData = /** @type {import("../types/api.js").GuildData | null} */ (guild.data);
     const powerData = /** @type {Record<string, unknown> | null} */ (powerStats.data);
@@ -122,10 +128,10 @@ class OverviewViewModel extends AbstractViewModel {
       <section class="sg-overview-card">
         ${overviewCardHeader({
           title: "Community Leaderboard",
-          subtitle: "Other top Guilds - ranked by total Alpha Infused",
+          subtitle: "Other top Guilds — ranked by collateral",
         })}
         <div class="sg-overview-card__body sg-overview-card__body--leaderboard">
-          ${renderLeaderboard()}
+          ${renderLeaderboard(leaderboardRes)}
         </div>
       </section>
     `;
@@ -161,8 +167,49 @@ class OverviewViewModel extends AbstractViewModel {
   }
 }
 
-function renderLeaderboard() {
-  return `<p class="sg-overview-empty">Community leaderboard data is not available yet.</p>`;
+/**
+ * @param {import("../store/Resource.js").Resource<unknown>} res
+ */
+function renderLeaderboard(res) {
+  if (res.status === "idle" || res.status === "loading") {
+    return `<p class="sg-overview-empty">Loading community leaderboard…</p>`;
+  }
+  if (res.status === "missing") {
+    return `<p class="sg-overview-empty">Leaderboard API is not available on this Guild.</p>`;
+  }
+  if (res.status === "error") {
+    return `<p class="sg-overview-empty">Could not load community leaderboard.</p>`;
+  }
+  const rows = Array.isArray(res.data) ? res.data : [];
+  if (!rows.length) {
+    return `<p class="sg-overview-empty">Community leaderboard data is not available yet.</p>`;
+  }
+
+  return rows
+    .slice(0, 5)
+    .map((raw, index) => {
+      const row = /** @type {Record<string, unknown>} */ (raw);
+      const name = String(row.name || row.onchain_name || row.guild_id || "Guild");
+      const collateral = row.collateral_p ?? row.collateral;
+      const players = row.player_count;
+      return overviewLeaderboardRow({
+        name,
+        avatarText: name,
+        columns: [
+          {
+            period: "Collateral",
+            value: formatUnitOrDash(collateral, "ualpha"),
+            rank: `#${index + 1}`,
+            rankTone: "neutral",
+          },
+          {
+            period: "Members",
+            value: players == null ? "—" : String(players),
+          },
+        ],
+      });
+    })
+    .join("");
 }
 
 /**

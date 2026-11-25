@@ -43,6 +43,11 @@ export const MSG_TYPES = Object.freeze({
   SUBSTATION_PLAYER_MIGRATE: "/structs.structs.MsgSubstationPlayerMigrate",
   SUBSTATION_UPDATE_NAME: "/structs.structs.MsgSubstationUpdateName",
   SUBSTATION_UPDATE_PFP: "/structs.structs.MsgSubstationUpdatePfp",
+  SUBSTATION_UPDATE_CONNECTION_CAPACITY_MAXIMUM:
+    "/structs.structs.MsgSubstationUpdateConnectionCapacityMaximum",
+
+  // Vault (structsd v0.22.0) — liquid balances move between player/guild vaults
+  VAULT_SEND: "/structs.structs.MsgVaultSend",
 
   // Allocations
   ALLOCATION_CREATE: "/structs.structs.MsgAllocationCreate",

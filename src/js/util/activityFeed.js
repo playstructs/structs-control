@@ -22,7 +22,7 @@ import { entityRoute } from "./entityId.js";
  * @param {import("../store/TxQueue.js").TxRecord[]} records
  * @param {import("./entityLookup.js").EntityLookup | null | undefined} [lookup]
  * @param {{ limit?: number }} [options]
- * @returns {ActivityFeedItem[]}
+ * @returns {Array<ActivityFeedItem & { _sortAt?: number, _priority?: number }>}
  */
 export function txRecordsToActivityItems(records, lookup, options = {}) {
   const limit = options.limit ?? 6;
@@ -61,6 +61,8 @@ export function infusionRowsToActivityItems(infusions, lookup, options = {}) {
     const defusing = Boolean(row.defusing);
     const href = entityRoute(reactorId) ?? `/energy/reactors/${encodeURIComponent(reactorId)}`;
 
+    // Infusions are current fuel state, not timestamped events, so they carry
+    // no `_sortAt` — they render below timed activity, ordered by `_priority`.
     if (defusing) {
       items.push({
         icon: "alpha-defuse",
@@ -73,7 +75,6 @@ export function infusionRowsToActivityItems(infusions, lookup, options = {}) {
         actionLabel: reactor,
         actionHref: href,
         _priority: 2,
-        _sortAt: Date.now(),
       });
     } else {
       items.push({
@@ -85,7 +86,6 @@ export function infusionRowsToActivityItems(infusions, lookup, options = {}) {
         actionLabel: reactor,
         actionHref: href,
         _priority: 1,
-        _sortAt: 0,
       });
     }
   }
@@ -111,8 +111,14 @@ export function buildOverviewActivityItems(records, infusions, lookup, options =
 
   const merged = [...txItems, ...infusionItems]
     .sort((a, b) => {
-      const byTime = (b._sortAt ?? 0) - (a._sortAt ?? 0);
-      if (byTime) return byTime;
+      const aTime = typeof a._sortAt === "number" ? a._sortAt : null;
+      const bTime = typeof b._sortAt === "number" ? b._sortAt : null;
+      // Timed activity (session txs) newest-first at the top.
+      if (aTime != null && bTime != null) return bTime - aTime;
+      // Timed activity ranks above untimed infusion state rows.
+      if (aTime != null) return -1;
+      if (bTime != null) return 1;
+      // Both untimed: fall back to priority (defuse before infuse).
       return (b._priority ?? 0) - (a._priority ?? 0);
     })
     .slice(0, limit);

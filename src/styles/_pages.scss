@@ -99,6 +99,69 @@
   flex-direction: column;
   gap: 8px;
   z-index: var(--sg-z-toast);
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+.sg-success-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 280px;
+  max-width: 360px;
+  padding: 14px 16px;
+  border: 1px solid var(--sg-border-light, #d9dbe3);
+  border-radius: var(--sg-radius-md, 8px);
+  background: var(--sg-surface, #fff);
+  box-shadow:
+    0 2px 4px rgba(26, 28, 97, 0.04),
+    0 16px 32px -4px rgba(26, 28, 97, 0.1);
+  color: var(--sg-text-body, #3a4050);
+}
+
+.sg-success-toast__icon {
+  flex: 0 0 auto;
+  color: var(--sg-text-success, #32862b);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.sg-success-toast__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sg-success-toast__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--sg-text-title, #1f212a);
+}
+
+.sg-success-toast__hint {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--sg-btn-space, #254dbc);
+  text-decoration: underline;
+}
+
+.sg-success-toast__close {
+  flex: 0 0 auto;
+  margin: -4px -4px 0 0;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--sg-text-subtitle, #7a849f);
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--sg-text-title, #1f212a);
+  }
 }
 
 // -- Activity / transaction queue --------------------------------------------

@@ -59,14 +59,15 @@ Guild ID used for probes: `0-1`. Unauthenticated probes; catalog routes that exi
 | --- | --- | --- | --- |
 | `GET` | `/timestamp` | AuthManager | returns `{ unix_timestamp }` |
 | `POST` | `/auth/login` | AuthManager | sets session cookie |
-| `GET` | `/auth/logout` | AuthManager | clears session cookie |
+| `POST` | `/auth/logout` | AuthManager | clears session cookie (GET is not supported; v0.22 contract) |
 | `GET` | `/auth/player-address/{address}/guild/{guildId}/player-id` | AuthManager | returns `{ player_id }` |
+| `GET` | `/block` | TxQueue readiness gate | indexed height + envelope `meta` (`data_ready`, `transaction_ready`, `protocol`, …); optional — missing → no gate |
 | `GET` | `/guild/this` | OverviewController, Infrastructure | the "default" guild for the API host |
 | `GET` | `/guild/{guildId}` | OverviewController, GuildDetails | full guild record |
 | `GET` | `/guild/{guildId}/roster` | PlayersController | list of player records |
 | `GET` | `/guild/{guildId}/members/count` | Overview | `{ count }` |
 | `GET` | `/guild/{guildId}/power/stats` | Overview | guild power summary |
-| `GET` | `/player/{playerId}` | PlayerProfile | one player; SPA reads `pfp_client_render_attributes` (JSON string) for the layered avatar (optional — falls back to placeholder) |
+| `GET` | `/player/{playerId}` | PlayerProfile | one player; SPA reads `pfp_client_render_attributes` (JSON string) for the layered avatar (optional — falls back to placeholder). v0.22 funds: prefer exact `spendable_alpha_p` / `available_alpha_p` / `vault_address` / `retained_funds_meta` over display `alpha` for spends — unavailable retained evidence is unknown, not zero. |
 | `GET` | `/player-address/player/{playerId}` | PlayerProfile | addresses on file |
 | `GET` | `/infusion/player/{playerId}` | PlayerProfile | one infusion record |
 | `GET` | `/infusion/list/destination/{reactorId}/page/{n}` | ReactorProfile | all player infusions at reactor |
@@ -87,6 +88,11 @@ Guild ID used for probes: `0-1`. Unauthenticated probes; catalog routes that exi
 | `GET` | `/grid/all/page/{n}` | GridManager | full grid catalog; normalized to `keys.gridIndex()` |
 | `GET` | `/grid/object/{object_id}/page/{n}` | (not used by SPA) | per-object grid rows; SPA uses bulk index instead |
 | `GET` | `/grid/attribute-type/{attribute_type}/page/{n}` | (not used by SPA) | filter by attribute type |
+| `GET` | `/guild-bank` | BankManager | all guild banks: `{ guild_id, denom, collateral, supply, ratio }[]` |
+| `GET` | `/guild-bank/{guildId}/history?bucket=1d\|1h` | BankManager | ledger volume by bucket/action/denom (30d window) |
+| `GET` | `/inventory/denom/{denom}/page/{n}?limit=` | BankManager | top holders for a denom |
+| `GET` | `/inventory/owner/{ownerType}/{ownerId}` | (available) | all denoms for one owner |
+| `GET` | `/leaderboard/{kind}?order=&limit=` | BankManager | `kind` = player\|guild\|reactor\|substation\|provider |
 
 ### Grid index (SPA)
 
@@ -97,6 +103,16 @@ The admin SPA keeps a warm in-memory index at `keys.gridIndex()`:
 - **Consumers:** Reactors and Substations list pages read capacity/load from the index; player profile still uses bespoke `GET /player/{id}` grid joins.
 - **Limit:** catalog helper caps at 5000 rows (50 × 100). If the grid table grows beyond that, request a guild-scoped grid endpoint from the API team.
 
+### Guild bank (SPA)
+
+The Guild Banks page (`BankController`) no longer waits on a fictional `/guild/{id}/bank/balance`. It uses:
+
+- **`GET /guild-bank`** — pick this guild’s `uguild.*` row for collateral / supply / ratio; full list feeds Top Tokens (by collateral).
+- **`GET /guild-bank/{guildId}/history?bucket=1h`** — net minted/burned and infused/defused volume over the last 24h for period columns (7d period deltas still unavailable).
+- **`GET /inventory/denom/{denom}/page/1`** — Top Accounts + Player Lookup Amount when the player appears in the top page.
+- **`GET /leaderboard/guild?order=collateral.desc`** — cross-guild collateral rank (`#N`) on the Alpha Collateral card.
+
+Writes still go through `store.tx` (`MsgGuildBankMint` / Redeem / ConfiscateAndBurn); invalidation refreshes the keys above.
 
 ### Removed (v0.16)
 
@@ -108,11 +124,13 @@ Player name and avatar updates are chain transactions only. The SPA no longer ca
 
 ## Endpoints we'd like
 
-### Guild bank balances
+### Guild bank (remaining gaps)
 
-The Mint / Redeem page can submit transactions but cannot read current balances. We'd like:
+Now available and wired: `GET /guild-bank`, `GET /guild-bank/{id}/history`, `GET /inventory/denom/...`, `GET /leaderboard/guild`. Still missing for a full Figma match:
 
-- `GET /guild/{guildId}/bank/balance` -- `{ balances: [{ denom, amount }] }`
+- Period deltas for collateral / token supply / ratio over **last 7 days** (history is action-volume only, not snapshot deltas)
+- `GET /guild/{guildId}/bank/transactions` (or ledger filtered by guild denom) — guild-scoped mint/redeem/transfer history (SPA still shows session TxQueue bank msgs only)
+- Full per-player guild-token balances for Player Lookup (inventory-by-denom is paginated top holders; roster players outside page 1 still show —)
 
 ### Tx confirmation
 
@@ -128,7 +146,7 @@ The queue paces broadcasts off the `block` GRASS subject (`BlockListener` → `s
 The Guild Overview screen (Figma Flows `1920:64583`) needs richer read surfaces than the current SPA has:
 
 - `GET /guild/{guildId}/power/stats` — document response shape; SPA expects optional fields for total alpha infused and period deltas (`total_alpha_infused`, `last_7_days`, `last_24_hours`, membership deltas).
-- `GET /guild/leaderboard` (or equivalent) — top guilds ranked by total alpha infused with period metrics for the Community Leaderboard card.
+- `GET /leaderboard/guild` — **now available** and wired on Overview Community Leaderboard + Bank collateral rank.
 - `GET /guild/{guildId}/activity` (or GRASS feed) — guild-scoped activity events for the Overview Activity panel (tx queue is session-only; SPA currently merges session txs with guild reactor infusion rows as a stopgap).
 
 ### Energy Grid
@@ -137,6 +155,11 @@ The Energy Grid screen (Figma Flows `1920:64579`) uses catalog data today. Gaps:
 
 - `GET /substation/{id}/stats/24h` (or GRASS) — substation load deltas for the "Biggest Drop (last 24hr)" activity card (SPA falls back to highest current load).
 - `GET /player/list/guild/{guildId}/page/` with `substation_id`, `load`, `capacity` — would replace aggregating `GET /player/list/substation/{id}/page/` across every substation for Player Lookup (guild roster does not include `substation_id`).
+- Grid catalog / GRASS must emit `connectionCapacityMaximum` (attribute enum **15**, structsd v0.23) so Substation detail can show the live per-player cap without a native LCD query.
+
+### v0.22 / v0.23 readiness
+
+See [`docs/MIGRATION-0.22.md`](./MIGRATION-0.22.md). JsonAjaxer still unwraps `data` for callers, but keeps `lastMeta` and supports `{ envelope: true }` (used by `getBlockSnapshot`). `TxQueue` refuses broadcast when `/block` meta has `transaction_ready: false`. Cookie 401/403 triggers single-flight `AuthManager.reauthenticate`.
 
 ### Energy Permissions
 

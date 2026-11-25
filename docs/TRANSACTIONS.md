@@ -72,7 +72,8 @@ const tx = await this.store.tx.enqueue(this.buildDoX(id, value), {
 
 ### `enqueue(msg, options)`
 
-- `msg`: `{ typeUrl: string, value: object }` — a cosmjs `EncodeObject`. Build it with the helpers in [`src/js/util/txMessages.js`](../src/js/util/txMessages.js). `value` must be JSON-serializable (validated on enqueue).
+- `msg`: `{ typeUrl: string, value: object }` — a cosmjs `EncodeObject`. Build it with the helpers in [`src/js/util/txMessages.js`](../src/js/util/txMessages.js). `value` must be JSON-serializable (validated on enqueue). **uint64/int64 fields must be exact decimal strings** (never `Number` for values that may exceed `Number.MAX_SAFE_INTEGER`); builders call `normalizeMessagePayload` / `exactUint64` for the v0.22 wire contract.
+- **Protocol readiness** — before broadcast, `TxQueue` may call `GuildAPI.getBlockSnapshot()` and refuse when envelope `meta.transaction_ready === false`. If `/block` is missing (404 optional), the gate is skipped.
 - `options` (all optional):
 
 | Option | Type | What it does |

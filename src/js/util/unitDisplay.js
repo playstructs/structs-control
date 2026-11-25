@@ -17,6 +17,8 @@ export const GRID_ATTRIBUTE_DENOMS = Object.freeze({
   connectionCount: "milliwatt",
   allocationPointerStart: "milliwatt",
   allocationPointerEnd: "milliwatt",
+  /** Per-player draw ceiling; 0 = unlimited (structsd v0.23.0). */
+  connectionCapacityMaximum: "milliwatt",
 });
 
 /**

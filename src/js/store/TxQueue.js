@@ -92,6 +92,7 @@ export class TxQueue {
    *   confirmStrategy?: import("./confirmStrategy.js").ConfirmStrategy,
    *   blockPacing?: boolean,
    *   retryBackoffMs?: number,
+   *   assertTransactionReady?: () => Promise<void>,
    * }} [options]
    */
   constructor(store, options = {}) {
@@ -100,6 +101,12 @@ export class TxQueue {
 
     /** delay before re-attempting a failed broadcast; defaults to avg block time */
     this._retryBackoffMs = options.retryBackoffMs;
+    /**
+     * Optional pre-broadcast gate (e.g. Guild API `meta.transaction_ready`).
+     * Throw to fail the tx without signing.
+     * @type {null | (() => Promise<void>)}
+     */
+    this._assertTransactionReady = options.assertTransactionReady ?? null;
 
     /** @type {TxRecord[]} kept in enqueue order; pending order == broadcast order */
     this._records = [];
@@ -163,6 +170,14 @@ export class TxQueue {
   detachStargate() {
     this._stargate = null;
     this._inFlight = null;
+  }
+
+  /**
+   * Install or clear the pre-broadcast protocol readiness gate.
+   * @param {null | (() => Promise<void>)} assertTransactionReady
+   */
+  setAssertTransactionReady(assertTransactionReady) {
+    this._assertTransactionReady = assertTransactionReady;
   }
 
   // ---------------------------------------------------------------------------
@@ -454,6 +469,17 @@ export class TxQueue {
       this._fail(record, new Error("Queued transaction belongs to a different signer"), true);
       this._pump();
       return;
+    }
+
+    if (this._assertTransactionReady) {
+      try {
+        await this._assertTransactionReady();
+      } catch (e) {
+        const err = e instanceof Error ? e : new Error(String(e));
+        this._fail(record, err, true);
+        this._pump();
+        return;
+      }
     }
 
     this._inFlight = record;

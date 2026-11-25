@@ -117,6 +117,8 @@ export enum gridAttributeType {
   nonce = 12,
   ready = 13,
   checkpointBlock = 14,
+  /** Substation per-player limit; zero is unlimited. (structsd v0.23.0) */
+  connectionCapacityMaximum = 15,
   UNRECOGNIZED = -1,
 }
 
@@ -167,6 +169,9 @@ export function gridAttributeTypeFromJSON(object: any): gridAttributeType {
     case 14:
     case "checkpointBlock":
       return gridAttributeType.checkpointBlock;
+    case 15:
+    case "connectionCapacityMaximum":
+      return gridAttributeType.connectionCapacityMaximum;
     case -1:
     case "UNRECOGNIZED":
     default:
@@ -206,6 +211,8 @@ export function gridAttributeTypeToJSON(object: gridAttributeType): string {
       return "ready";
     case gridAttributeType.checkpointBlock:
       return "checkpointBlock";
+    case gridAttributeType.connectionCapacityMaximum:
+      return "connectionCapacityMaximum";
     case gridAttributeType.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";
@@ -258,11 +265,8 @@ export function allocationTypeToJSON(object: allocationType): string {
 }
 
 export enum guildJoinBypassLevel {
-  /** closed - Feature off */
   closed = 0,
-  /** permissioned - Only those with permissions can do it */
   permissioned = 1,
-  /** member - All members of the guild can contribute */
   member = 2,
   UNRECOGNIZED = -1,
 }
@@ -453,6 +457,7 @@ export enum raidStatus {
   attackerRetreated = 5,
   raidSuccessful = 3,
   demilitarized = 4,
+  shieldsVulnerable = 6,
   UNRECOGNIZED = -1,
 }
 
@@ -476,6 +481,9 @@ export function raidStatusFromJSON(object: any): raidStatus {
     case 4:
     case "demilitarized":
       return raidStatus.demilitarized;
+    case 6:
+    case "shieldsVulnerable":
+      return raidStatus.shieldsVulnerable;
     case -1:
     case "UNRECOGNIZED":
     default:
@@ -497,6 +505,8 @@ export function raidStatusToJSON(object: raidStatus): string {
       return "raidSuccessful";
     case raidStatus.demilitarized:
       return "demilitarized";
+    case raidStatus.shieldsVulnerable:
+      return "shieldsVulnerable";
     case raidStatus.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";
@@ -644,6 +654,11 @@ export enum planetAttributeType {
   orbitalJammingStationQuantity = 8,
   advancedOrbitalJammingStationQuantity = 9,
   blockStartRaid = 10,
+  blockRaiderArrived = 11,
+  planetBlockStartOreMine = 12,
+  planetBlockStartOreRefine = 13,
+  oreMiningActiveQuantity = 14,
+  oreRefiningActiveQuantity = 15,
   UNRECOGNIZED = -1,
 }
 
@@ -682,6 +697,21 @@ export function planetAttributeTypeFromJSON(object: any): planetAttributeType {
     case 10:
     case "blockStartRaid":
       return planetAttributeType.blockStartRaid;
+    case 11:
+    case "blockRaiderArrived":
+      return planetAttributeType.blockRaiderArrived;
+    case 12:
+    case "planetBlockStartOreMine":
+      return planetAttributeType.planetBlockStartOreMine;
+    case 13:
+    case "planetBlockStartOreRefine":
+      return planetAttributeType.planetBlockStartOreRefine;
+    case 14:
+    case "oreMiningActiveQuantity":
+      return planetAttributeType.oreMiningActiveQuantity;
+    case 15:
+    case "oreRefiningActiveQuantity":
+      return planetAttributeType.oreRefiningActiveQuantity;
     case -1:
     case "UNRECOGNIZED":
     default:
@@ -713,6 +743,16 @@ export function planetAttributeTypeToJSON(object: planetAttributeType): string {
       return "advancedOrbitalJammingStationQuantity";
     case planetAttributeType.blockStartRaid:
       return "blockStartRaid";
+    case planetAttributeType.blockRaiderArrived:
+      return "blockRaiderArrived";
+    case planetAttributeType.planetBlockStartOreMine:
+      return "planetBlockStartOreMine";
+    case planetAttributeType.planetBlockStartOreRefine:
+      return "planetBlockStartOreRefine";
+    case planetAttributeType.oreMiningActiveQuantity:
+      return "oreMiningActiveQuantity";
+    case planetAttributeType.oreRefiningActiveQuantity:
+      return "oreRefiningActiveQuantity";
     case planetAttributeType.UNRECOGNIZED:
     default:
       return "UNRECOGNIZED";
@@ -1022,13 +1062,6 @@ export function techOreReserveDefensesToJSON(object: techOreReserveDefenses): st
 export enum techPlanetaryDefenses {
   noPlanetaryDefense = 0,
   defensiveCannon = 1,
-  /**
-   * lowOrbitBallisticInterceptorNetwork - advancedLowOrbitBallisticInterceptorNetwork  = 3;
-   * repairNetwork                                = 4;
-   * coordinatedGlobalShieldNetwork               = 5;
-   * orbitalJammingStation                        = 6;
-   * advancedOrbitalJammingStation                = 7;
-   */
   lowOrbitBallisticInterceptorNetwork = 2,
   UNRECOGNIZED = -1,
 }

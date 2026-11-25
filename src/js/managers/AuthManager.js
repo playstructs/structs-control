@@ -105,6 +105,52 @@ export class AuthManager {
     return true;
   }
 
+  /**
+   * Re-issue login from the persisted mnemonic without clearing the SPA session.
+   * Used by GuildAPI session recovery on 401/403.
+   * @returns {Promise<boolean>}
+   */
+  async reauthenticate() {
+    const session = this.store.session;
+    if (!session?.isAuthenticated() || !session.data) return false;
+    const { mnemonic, address, pubkey, guildId, playerId } = session.data;
+    if (!mnemonic || !address || !pubkey || !guildId) return false;
+
+    try {
+      const wallet = await this.walletManager.createWallet(mnemonic);
+      const accounts = await /** @type {any} */ (wallet).getAccountsWithPrivkeys();
+      const account = accounts?.[0];
+      if (!account || account.address !== address) {
+        console.warn("[AuthManager.reauthenticate] wallet address mismatch");
+        return false;
+      }
+
+      const timestamp = await this.guildAPI.getTimestamp();
+      const message = this.guildAPI.buildLoginMessage(guildId, address, timestamp);
+      const signature = await this.walletManager.signMessage(message, account.privkey);
+
+      await this.guildAPI.login({
+        address,
+        pubkey,
+        guild_id: guildId,
+        unix_timestamp: timestamp,
+        signature,
+      });
+
+      // Keep session fields; refresh signing client in case WS dropped.
+      session.persist({ mnemonic, address, pubkey, playerId, guildId });
+      try {
+        await this.signingClientManager.connect(wallet, address);
+      } catch (e) {
+        console.warn("[AuthManager.reauthenticate] signing client reconnect failed:", e);
+      }
+      return true;
+    } catch (e) {
+      console.warn("[AuthManager.reauthenticate] failed:", e);
+      return false;
+    }
+  }
+
   async logout() {
     try {
       await this.guildAPI.logout();

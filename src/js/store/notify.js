@@ -20,6 +20,19 @@ const BANNER_LAYER_ID = "banner-layer";
 
 let toastSeq = 0;
 
+function ensureToastLayer() {
+  let layer = document.getElementById(TOAST_LAYER_ID);
+  if (layer) {
+    layer.classList.add("sg-toast-stack");
+    return layer;
+  }
+  layer = document.createElement("div");
+  layer.id = TOAST_LAYER_ID;
+  layer.className = "sg-toast-stack";
+  document.body.appendChild(layer);
+  return layer;
+}
+
 function levelToBootstrapBg(level) {
   switch (level) {
     case "success":
@@ -36,28 +49,83 @@ function levelToBootstrapBg(level) {
 /**
  * @param {string} message
  * @param {NotifyLevel} [level]
- * @param {{ timeoutMs?: number }} [options]
+ * @param {{
+ *   timeoutMs?: number,
+ *   href?: string,
+ *   onNavigate?: (path: string) => void,
+ * }} [options]
  */
 function toast(message, level = "info", options = {}) {
-  const layer = document.getElementById(TOAST_LAYER_ID);
-  if (!layer) {
-    console.warn("[notify.toast]", level, message);
-    return;
-  }
+  const layer = ensureToastLayer();
   const id = `sg-toast-${++toastSeq}`;
+  const clickable = Boolean(options.href);
   const html = `
-    <div id="${id}" class="toast align-items-center ${levelToBootstrapBg(level)} border-0 show" role="alert" aria-live="polite" aria-atomic="true">
+    <div id="${id}" class="toast align-items-center ${levelToBootstrapBg(level)} border-0 show${clickable ? " sg-toast--action" : ""}" role="alert" aria-live="polite" aria-atomic="true">
       <div class="d-flex">
-        <div class="toast-body">${escapeHtml(message)}</div>
+        <div class="toast-body">${escapeHtml(message)}${clickable ? ' <span class="sg-toast__hint">View details</span>' : ""}</div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
     </div>
   `;
   layer.insertAdjacentHTML("beforeend", html);
-  const el = document.getElementById(id);
+  wireToastEl(document.getElementById(id), options);
+}
+
+/**
+ * Figma success alert — white card, green check, clickable to completed.
+ *
+ * @param {string} message
+ * @param {{
+ *   timeoutMs?: number,
+ *   href?: string,
+ *   onNavigate?: (path: string) => void,
+ * }} [options]
+ */
+function successToast(message, options = {}) {
+  const layer = ensureToastLayer();
+  const id = `sg-toast-${++toastSeq}`;
+  const clickable = Boolean(options.href);
+  const html = `
+    <div id="${id}" class="sg-success-toast${clickable ? " sg-toast--action" : ""}" role="alert" aria-live="polite" aria-atomic="true">
+      <span class="sg-success-toast__icon" aria-hidden="true"><i class="bi bi-check-circle-fill"></i></span>
+      <div class="sg-success-toast__body">
+        <p class="sg-success-toast__title">${escapeHtml(message)}</p>
+        ${clickable ? '<p class="sg-success-toast__hint">View details</p>' : ""}
+      </div>
+      <button type="button" class="sg-success-toast__close" data-bs-dismiss="toast" aria-label="Close">
+        <i class="bi bi-x" aria-hidden="true"></i>
+      </button>
+    </div>
+  `;
+  layer.insertAdjacentHTML("beforeend", html);
+  wireToastEl(document.getElementById(id), options);
+}
+
+/**
+ * @param {HTMLElement | null} el
+ * @param {{
+ *   timeoutMs?: number,
+ *   href?: string,
+ *   onNavigate?: (path: string) => void,
+ * }} options
+ */
+function wireToastEl(el, options) {
   if (!el) return;
   const remove = () => el.remove();
-  el.querySelector('[data-bs-dismiss="toast"]')?.addEventListener("click", remove);
+  el.querySelector('[data-bs-dismiss="toast"]')?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    remove();
+  });
+  if (options.href) {
+    const href = options.href;
+    el.style.cursor = "pointer";
+    el.addEventListener("click", (e) => {
+      if (e.target instanceof Element && e.target.closest('[data-bs-dismiss="toast"]')) return;
+      remove();
+      if (options.onNavigate) options.onNavigate(href);
+      else window.history.pushState({}, "", href);
+    });
+  }
   const timeout = options.timeoutMs ?? 4500;
   if (timeout > 0) setTimeout(remove, timeout);
 }
@@ -143,6 +211,7 @@ function escapeHtml(s) {
 
 export const notify = {
   toast,
+  successToast,
   banner,
   dismissBanner,
   formError,

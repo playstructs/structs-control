@@ -39,6 +39,14 @@
 
 /**
  * @typedef {{
+ *   balances?: Array<{ denom?: string, amount?: string | number }>,
+ *   amount?: string | number,
+ *   denom?: string,
+ * }} GuildBankBalanceData
+ */
+
+/**
+ * @typedef {{
  *   id: string,
  *   guild_id?: string,
  *   primary_address?: string,
@@ -49,8 +57,29 @@
  *   substation_id?: string,
  *   ore?: string,
  *   alpha?: string,
+ *   spendable_alpha_p?: string | null,
+ *   available_alpha_p?: string | null,
+ *   vault_address?: string | null,
+ *   retained_alpha_p?: string | null,
+ *   retained_funds_meta?: {
+ *     ready?: boolean,
+ *     complete?: boolean,
+ *     height?: string,
+ *     reason?: string | null,
+ *     sources?: Array<{ address?: string, spendable_alpha_p?: string }>,
+ *   },
+ *   funds_meta?: {
+ *     ready?: boolean,
+ *     height?: string,
+ *     source?: string,
+ *     provisioned?: boolean,
+ *     reason?: string | null,
+ *   },
  *   capacity?: string,
  *   load?: string,
+ *   connection_capacity?: string | null,
+ *   connection_capacity_p?: string | null,
+ *   connection_capacity_is_player_share?: boolean,
  *   last_action_block_height?: number,
  * }} PlayerData
  */

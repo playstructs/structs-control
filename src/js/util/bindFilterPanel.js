@@ -3,6 +3,7 @@ import {
   formatFilterBoundForInput,
   parseFilterBoundInput,
 } from "./filterUnits.js";
+import * as bsOffcanvas from "bootstrap/js/dist/offcanvas.js";
 
 /**
  * Wire FilterPanel offcanvas: accordion toggles, draft state, Apply / Clear.
@@ -60,22 +61,16 @@ export function bindFilterPanel(root, schema, appliedFilters, handlers) {
   });
 
   root.querySelector('[data-role="panel-apply"]')?.addEventListener("click", () => {
-    handlers.onApply(readDraftFilters(root, schema));
-    const Offcanvas = getOffcanvasCtor();
-    if (Offcanvas) {
-      const instance = Offcanvas.getInstance(root) ?? Offcanvas.getOrCreateInstance(root);
-      instance.hide();
-    }
+    const next = readDraftFilters(root, schema);
+    // Dismiss before navigation/re-render so Bootstrap's backdrop is not orphaned.
+    dismissFilterOffcanvas(root);
+    handlers.onApply(next);
   });
 
   root.querySelector('[data-role="panel-clear"]')?.addEventListener("click", () => {
     clearDraftInputs(root, schema);
+    dismissFilterOffcanvas(root);
     handlers.onApply({});
-    const Offcanvas = getOffcanvasCtor();
-    if (Offcanvas) {
-      const instance = Offcanvas.getInstance(root) ?? Offcanvas.getOrCreateInstance(root);
-      instance.hide();
-    }
   });
 }
 
@@ -173,9 +168,35 @@ function renderSectionBodyHtml(field, filters, sectionId) {
 }
 
 function getOffcanvasCtor() {
-  if (typeof window === "undefined") return null;
-  const mod = window.bootstrap?.Offcanvas;
-  return mod ?? null;
+  return /** @type {any} */ (bsOffcanvas).default ?? bsOffcanvas;
+}
+
+/**
+ * Tear down an offcanvas immediately (no hide animation).
+ * Apply/Clear navigate/re-render the table; calling hide() would queue a
+ * transition callback that touches classList after the panel is gone.
+ * @param {HTMLElement | null | undefined} panel
+ */
+export function dismissFilterOffcanvas(panel) {
+  const Offcanvas = getOffcanvasCtor();
+  if (Offcanvas && panel) {
+    const instance = Offcanvas.getInstance(panel);
+    if (instance) {
+      try {
+        instance.dispose();
+      } catch {
+        /* already torn down */
+      }
+    }
+    panel.classList.remove("show", "showing", "hiding");
+    panel.removeAttribute("aria-modal");
+    panel.removeAttribute("role");
+    panel.setAttribute("aria-hidden", "true");
+  }
+  document.querySelectorAll(".offcanvas-backdrop").forEach((el) => el.remove());
+  document.body.classList.remove("overflow-hidden");
+  document.body.style.removeProperty("overflow");
+  document.body.style.removeProperty("padding-right");
 }
 
 /**

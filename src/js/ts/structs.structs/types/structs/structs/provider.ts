@@ -13,31 +13,36 @@ export const protobufPackage = "structs.structs";
 
 export interface Provider {
   id: string;
-  index: number;
+  index: string;
   substationId: string;
   rate: Coin | undefined;
   accessPolicy: providerAccessPolicy;
-  capacityMinimum: number;
-  capacityMaximum: number;
-  durationMinimum: number;
-  durationMaximum: number;
+  capacityMinimum: string;
+  capacityMaximum: string;
+  durationMinimum: string;
+  durationMaximum: string;
   providerCancellationPenalty: string;
   consumerCancellationPenalty: string;
   creator: string;
   owner: string;
 }
 
+export interface ProviderGuildAccessRecord {
+  providerId: string;
+  guildId: string;
+}
+
 function createBaseProvider(): Provider {
   return {
     id: "",
-    index: 0,
+    index: "0",
     substationId: "",
     rate: undefined,
     accessPolicy: 0,
-    capacityMinimum: 0,
-    capacityMaximum: 0,
-    durationMinimum: 0,
-    durationMaximum: 0,
+    capacityMinimum: "0",
+    capacityMaximum: "0",
+    durationMinimum: "0",
+    durationMaximum: "0",
     providerCancellationPenalty: "",
     consumerCancellationPenalty: "",
     creator: "",
@@ -50,7 +55,7 @@ export const Provider: MessageFns<Provider> = {
     if (message.id !== "") {
       writer.uint32(10).string(message.id);
     }
-    if (message.index !== 0) {
+    if (message.index !== "0") {
       writer.uint32(16).uint64(message.index);
     }
     if (message.substationId !== "") {
@@ -62,16 +67,16 @@ export const Provider: MessageFns<Provider> = {
     if (message.accessPolicy !== 0) {
       writer.uint32(40).int32(message.accessPolicy);
     }
-    if (message.capacityMinimum !== 0) {
+    if (message.capacityMinimum !== "0") {
       writer.uint32(48).uint64(message.capacityMinimum);
     }
-    if (message.capacityMaximum !== 0) {
+    if (message.capacityMaximum !== "0") {
       writer.uint32(56).uint64(message.capacityMaximum);
     }
-    if (message.durationMinimum !== 0) {
+    if (message.durationMinimum !== "0") {
       writer.uint32(64).uint64(message.durationMinimum);
     }
-    if (message.durationMaximum !== 0) {
+    if (message.durationMaximum !== "0") {
       writer.uint32(72).uint64(message.durationMaximum);
     }
     if (message.providerCancellationPenalty !== "") {
@@ -109,7 +114,7 @@ export const Provider: MessageFns<Provider> = {
             break;
           }
 
-          message.index = longToNumber(reader.uint64());
+          message.index = reader.uint64().toString();
           continue;
         }
         case 3: {
@@ -141,7 +146,7 @@ export const Provider: MessageFns<Provider> = {
             break;
           }
 
-          message.capacityMinimum = longToNumber(reader.uint64());
+          message.capacityMinimum = reader.uint64().toString();
           continue;
         }
         case 7: {
@@ -149,7 +154,7 @@ export const Provider: MessageFns<Provider> = {
             break;
           }
 
-          message.capacityMaximum = longToNumber(reader.uint64());
+          message.capacityMaximum = reader.uint64().toString();
           continue;
         }
         case 8: {
@@ -157,7 +162,7 @@ export const Provider: MessageFns<Provider> = {
             break;
           }
 
-          message.durationMinimum = longToNumber(reader.uint64());
+          message.durationMinimum = reader.uint64().toString();
           continue;
         }
         case 9: {
@@ -165,7 +170,7 @@ export const Provider: MessageFns<Provider> = {
             break;
           }
 
-          message.durationMaximum = longToNumber(reader.uint64());
+          message.durationMaximum = reader.uint64().toString();
           continue;
         }
         case 10: {
@@ -212,14 +217,14 @@ export const Provider: MessageFns<Provider> = {
   fromJSON(object: any): Provider {
     return {
       id: isSet(object.id) ? globalThis.String(object.id) : "",
-      index: isSet(object.index) ? globalThis.Number(object.index) : 0,
+      index: isSet(object.index) ? globalThis.String(object.index) : "0",
       substationId: isSet(object.substationId) ? globalThis.String(object.substationId) : "",
       rate: isSet(object.rate) ? Coin.fromJSON(object.rate) : undefined,
       accessPolicy: isSet(object.accessPolicy) ? providerAccessPolicyFromJSON(object.accessPolicy) : 0,
-      capacityMinimum: isSet(object.capacityMinimum) ? globalThis.Number(object.capacityMinimum) : 0,
-      capacityMaximum: isSet(object.capacityMaximum) ? globalThis.Number(object.capacityMaximum) : 0,
-      durationMinimum: isSet(object.durationMinimum) ? globalThis.Number(object.durationMinimum) : 0,
-      durationMaximum: isSet(object.durationMaximum) ? globalThis.Number(object.durationMaximum) : 0,
+      capacityMinimum: isSet(object.capacityMinimum) ? globalThis.String(object.capacityMinimum) : "0",
+      capacityMaximum: isSet(object.capacityMaximum) ? globalThis.String(object.capacityMaximum) : "0",
+      durationMinimum: isSet(object.durationMinimum) ? globalThis.String(object.durationMinimum) : "0",
+      durationMaximum: isSet(object.durationMaximum) ? globalThis.String(object.durationMaximum) : "0",
       providerCancellationPenalty: isSet(object.providerCancellationPenalty)
         ? globalThis.String(object.providerCancellationPenalty)
         : "",
@@ -236,8 +241,8 @@ export const Provider: MessageFns<Provider> = {
     if (message.id !== "") {
       obj.id = message.id;
     }
-    if (message.index !== 0) {
-      obj.index = Math.round(message.index);
+    if (message.index !== "0") {
+      obj.index = message.index;
     }
     if (message.substationId !== "") {
       obj.substationId = message.substationId;
@@ -248,17 +253,17 @@ export const Provider: MessageFns<Provider> = {
     if (message.accessPolicy !== 0) {
       obj.accessPolicy = providerAccessPolicyToJSON(message.accessPolicy);
     }
-    if (message.capacityMinimum !== 0) {
-      obj.capacityMinimum = Math.round(message.capacityMinimum);
+    if (message.capacityMinimum !== "0") {
+      obj.capacityMinimum = message.capacityMinimum;
     }
-    if (message.capacityMaximum !== 0) {
-      obj.capacityMaximum = Math.round(message.capacityMaximum);
+    if (message.capacityMaximum !== "0") {
+      obj.capacityMaximum = message.capacityMaximum;
     }
-    if (message.durationMinimum !== 0) {
-      obj.durationMinimum = Math.round(message.durationMinimum);
+    if (message.durationMinimum !== "0") {
+      obj.durationMinimum = message.durationMinimum;
     }
-    if (message.durationMaximum !== 0) {
-      obj.durationMaximum = Math.round(message.durationMaximum);
+    if (message.durationMaximum !== "0") {
+      obj.durationMaximum = message.durationMaximum;
     }
     if (message.providerCancellationPenalty !== "") {
       obj.providerCancellationPenalty = message.providerCancellationPenalty;
@@ -281,18 +286,94 @@ export const Provider: MessageFns<Provider> = {
   fromPartial<I extends Exact<DeepPartial<Provider>, I>>(object: I): Provider {
     const message = createBaseProvider();
     message.id = object.id ?? "";
-    message.index = object.index ?? 0;
+    message.index = object.index ?? "0";
     message.substationId = object.substationId ?? "";
     message.rate = (object.rate !== undefined && object.rate !== null) ? Coin.fromPartial(object.rate) : undefined;
     message.accessPolicy = object.accessPolicy ?? 0;
-    message.capacityMinimum = object.capacityMinimum ?? 0;
-    message.capacityMaximum = object.capacityMaximum ?? 0;
-    message.durationMinimum = object.durationMinimum ?? 0;
-    message.durationMaximum = object.durationMaximum ?? 0;
+    message.capacityMinimum = object.capacityMinimum ?? "0";
+    message.capacityMaximum = object.capacityMaximum ?? "0";
+    message.durationMinimum = object.durationMinimum ?? "0";
+    message.durationMaximum = object.durationMaximum ?? "0";
     message.providerCancellationPenalty = object.providerCancellationPenalty ?? "";
     message.consumerCancellationPenalty = object.consumerCancellationPenalty ?? "";
     message.creator = object.creator ?? "";
     message.owner = object.owner ?? "";
+    return message;
+  },
+};
+
+function createBaseProviderGuildAccessRecord(): ProviderGuildAccessRecord {
+  return { providerId: "", guildId: "" };
+}
+
+export const ProviderGuildAccessRecord: MessageFns<ProviderGuildAccessRecord> = {
+  encode(message: ProviderGuildAccessRecord, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.providerId !== "") {
+      writer.uint32(10).string(message.providerId);
+    }
+    if (message.guildId !== "") {
+      writer.uint32(18).string(message.guildId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ProviderGuildAccessRecord {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseProviderGuildAccessRecord();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 10) {
+            break;
+          }
+
+          message.providerId = reader.string();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.guildId = reader.string();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): ProviderGuildAccessRecord {
+    return {
+      providerId: isSet(object.providerId) ? globalThis.String(object.providerId) : "",
+      guildId: isSet(object.guildId) ? globalThis.String(object.guildId) : "",
+    };
+  },
+
+  toJSON(message: ProviderGuildAccessRecord): unknown {
+    const obj: any = {};
+    if (message.providerId !== "") {
+      obj.providerId = message.providerId;
+    }
+    if (message.guildId !== "") {
+      obj.guildId = message.guildId;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ProviderGuildAccessRecord>, I>>(base?: I): ProviderGuildAccessRecord {
+    return ProviderGuildAccessRecord.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ProviderGuildAccessRecord>, I>>(object: I): ProviderGuildAccessRecord {
+    const message = createBaseProviderGuildAccessRecord();
+    message.providerId = object.providerId ?? "";
+    message.guildId = object.guildId ?? "";
     return message;
   },
 };
@@ -308,17 +389,6 @@ export type DeepPartial<T> = T extends Builtin ? T
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 export type Exact<P, I extends P> = P extends Builtin ? P
   : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
-
-function longToNumber(int64: { toString(): string }): number {
-  const num = globalThis.Number(int64.toString());
-  if (num > globalThis.Number.MAX_SAFE_INTEGER) {
-    throw new globalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
-  }
-  if (num < globalThis.Number.MIN_SAFE_INTEGER) {
-    throw new globalThis.Error("Value is smaller than Number.MIN_SAFE_INTEGER");
-  }
-  return num;
-}
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;

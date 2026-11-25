@@ -17,6 +17,10 @@ export class GuildAPI {
   constructor(options = {}) {
     this.baseUrl = options.baseUrl ?? "/api";
     this.ajax = new JsonAjaxer({ baseUrl: this.baseUrl });
+    /** @type {null | (() => Promise<boolean>)} */
+    this.reauthenticator = null;
+    /** @type {Promise<boolean> | null} */
+    this.sessionRecovery = null;
 
     const optional = [
       "/reactor/guild/",
@@ -33,16 +37,70 @@ export class GuildAPI {
       "/stat/",
       "/grid/",
       "/permission/",
+      "/guild-bank",
+      "/inventory/",
+      "/leaderboard/",
     ];
     for (const p of optional) this.ajax.registerOptional(p);
   }
 
   // -- Auth + bootstrap -------------------------------------------------------
 
+  /**
+   * Install the callback that restores an expired cookie session. Wired at
+   * bootstrap because signing a fresh login needs the wallet above this layer.
+   * @param {() => Promise<boolean>} reauthenticator
+   */
+  setReauthenticator(reauthenticator) {
+    this.reauthenticator = reauthenticator;
+    this.ajax.onUnauthorized = () => this.recoverSession();
+  }
+
+  /**
+   * Collapse concurrent 401/403s onto a single re-login (webapp pattern).
+   * @returns {Promise<boolean>}
+   */
+  recoverSession() {
+    if (!this.reauthenticator) return Promise.resolve(false);
+    if (!this.sessionRecovery) {
+      this.sessionRecovery = Promise.resolve()
+        .then(() => this.reauthenticator())
+        .catch((error) => {
+          console.warn("[GuildAPI] session recovery failed:", error);
+          return false;
+        })
+        .finally(() => {
+          this.sessionRecovery = null;
+        });
+    }
+    return this.sessionRecovery;
+  }
+
+  /** Most recent envelope `meta` from any successful Guild API call. */
+  get lastMeta() {
+    return this.ajax.lastMeta;
+  }
+
   /** @returns {Promise<string>} unix timestamp string */
   async getTimestamp() {
     const data = await this.ajax.get(`/timestamp`);
     return String(data?.unix_timestamp ?? "");
+  }
+
+  /**
+   * Indexed block + protocol readiness. Always fetched fresh (not Store-cached)
+   * so signing rules are never selected from a stale snapshot.
+   * @returns {Promise<{ success: true, data: unknown, meta: Record<string, unknown> }>}
+   */
+  async getBlockSnapshot() {
+    const response = await this.ajax.get(`/block`, { envelope: true });
+    if (!response?.meta || typeof response.meta !== "object") {
+      throw new GuildAPIError("Indexed protocol state unavailable", {
+        status: 0,
+        url: `${this.baseUrl}/block`,
+      });
+    }
+    return response;
   }
 
   /**
@@ -61,11 +119,16 @@ export class GuildAPI {
    * @param {{ address: string, pubkey: string, guild_id: string, unix_timestamp: string, signature: string }} body
    */
   async login(body) {
-    return await this.ajax.post(`/auth/login`, body);
+    // Never recurse into session recovery while establishing a session.
+    return await this.ajax.post(`/auth/login`, body, { reauthenticate: false });
   }
 
+  /**
+   * Clear the session cookie. POST only — GET /auth/logout is not supported
+   * (structsd/webapp 0.22 migration contract).
+   */
   async logout() {
-    return await this.ajax.get(`/auth/logout`);
+    return await this.ajax.post(`/auth/logout`, {}, { reauthenticate: false });
   }
 
   // -- Guild ------------------------------------------------------------------
@@ -97,6 +160,67 @@ export class GuildAPI {
   /** @param {string} guildId */
   async getGuildPowerStats(guildId) {
     return await this.ajax.get(`/guild/${encodeURIComponent(guildId)}/power/stats`);
+  }
+
+  /**
+   * All guild banks: `{ guild_id, denom, collateral, supply, ratio }[]`
+   * (Symfony `InventoryController::getGuildBank` → `/guild-bank`).
+   * @returns {Promise<Array<Record<string, unknown>>>}
+   */
+  async getGuildBank() {
+    const data = await this.ajax.get(`/guild-bank`);
+    return Array.isArray(data) ? data : [];
+  }
+
+  /**
+   * Ledger volume history for a guild token (`bucket` = `1d` | `1h`).
+   * @param {string} guildId
+   * @param {string} [bucket]
+   * @returns {Promise<Array<Record<string, unknown>>>}
+   */
+  async getGuildBankHistory(guildId, bucket = "1d") {
+    const q = bucket ? `?bucket=${encodeURIComponent(bucket)}` : "";
+    const data = await this.ajax.get(`/guild-bank/${encodeURIComponent(guildId)}/history${q}`);
+    return Array.isArray(data) ? data : [];
+  }
+
+  /**
+   * Inventory holders for a denom (Top Accounts) — page of `{ owner_type, owner_id, denom, balance }`.
+   * @param {string} denom
+   * @param {number} [page]
+   * @param {number} [limit]
+   */
+  async getInventoryByDenom(denom, page = 1, limit = 25) {
+    const q = limit ? `?limit=${encodeURIComponent(String(limit))}` : "";
+    const data = await this.ajax.get(
+      `/inventory/denom/${encodeURIComponent(denom)}/page/${encodeURIComponent(String(page))}${q}`,
+    );
+    return Array.isArray(data) ? data : [];
+  }
+
+  /**
+   * Inventory for one owner — `{ owner_type, owner_id, denom, balance }[]`.
+   * @param {string} ownerType
+   * @param {string} ownerId
+   */
+  async getInventoryByOwner(ownerType, ownerId) {
+    const data = await this.ajax.get(
+      `/inventory/owner/${encodeURIComponent(ownerType)}/${encodeURIComponent(ownerId)}`,
+    );
+    return Array.isArray(data) ? data : [];
+  }
+
+  /**
+   * @param {"player" | "guild" | "reactor" | "substation" | "provider"} kind
+   * @param {{ order?: string, limit?: number | string }} [opts]
+   */
+  async getLeaderboard(kind, opts = {}) {
+    const params = new URLSearchParams();
+    if (opts.order) params.set("order", String(opts.order));
+    if (opts.limit != null) params.set("limit", String(opts.limit));
+    const q = params.toString() ? `?${params}` : "";
+    const data = await this.ajax.get(`/leaderboard/${encodeURIComponent(kind)}${q}`);
+    return Array.isArray(data) ? data : [];
   }
 
   async getSettings() {

@@ -56,6 +56,7 @@ export class SubstationDetailController extends AbstractController {
         store: this.store,
         router: this.router,
         id,
+        substationManager: this.substationManager,
         allocationManager: this.allocationManager,
         gridManager: this.gridManager,
         params: params ?? {},
@@ -107,6 +108,7 @@ class SubstationDetailViewModel extends AbstractViewModel {
     this.store = deps.store;
     this.router = deps.router;
     this.id = deps.id;
+    this.substationManager = deps.substationManager;
     this.allocationManager = deps.allocationManager;
     this.gridManager = deps.gridManager;
     this.params = deps.params;
@@ -144,6 +146,12 @@ class SubstationDetailViewModel extends AbstractViewModel {
     const substationLabel =
       subData && typeof subData === "object" && subData.name ? `${subData.name} (${this.id})` : this.id;
     const lookupRows = buildPlayerLookupRows(playerRows, allocRows);
+    const gridAttrs = gridIndex?.[this.id] ?? {};
+    const capMaxRaw = gridAttrs.connectionCapacityMaximum;
+    const capMaxLabel =
+      capMaxRaw == null || Number(capMaxRaw) === 0
+        ? "Unlimited"
+        : formatGridAttribute("connectionCapacityMaximum", capMaxRaw);
 
     return `
       ${LayoutViewModel.pageHeader({
@@ -157,9 +165,32 @@ class SubstationDetailViewModel extends AbstractViewModel {
             ${statCard({ label: "Name", value: s?.name ?? "—" })}
             ${statCard({ label: "Owner", valueHtml: renderEntityRef(s?.owner, lookup) })}
             ${statCard({ label: "Creator", valueHtml: renderEntityRef(s?.creator, lookup) })}
+            ${statCard({ label: "Connection cap", value: capMaxLabel })}
+            ${statCard({
+              label: "Capacity",
+              value: formatGridAttribute("capacity", gridAttrs.capacity),
+            })}
+            ${statCard({ label: "Load", value: formatGridAttribute("load", gridAttrs.load) })}
           </div>
         `,
       })}
+      <div class="sg-card mt-3">
+        <div class="sg-card__title">Connection capacity maximum</div>
+        <p class="text-secondary small mb-3">
+          Caps how much power each connected player can draw (structsd v0.23). Zero clears the cap.
+          Usable substation capacity is <code>floor(incoming × 9/10)</code> after operating loss.
+        </p>
+        <form id="form-connection-cap" class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label small text-secondary" for="connection-cap-max">Maximum (milliwatts)</label>
+            <input id="connection-cap-max" name="connectionCapacityMaximum" type="text" class="form-control font-monospace" value="${escapeAttr(capMaxRaw == null ? "0" : String(capMaxRaw))}" placeholder="0" />
+            <div class="invalid-feedback"></div>
+          </div>
+          <div class="col-md-2">
+            <button type="button" class="btn btn-primary w-100" data-action="save-connection-cap">Save</button>
+          </div>
+        </form>
+      </div>
       <div class="sg-card mt-3">
         <div class="sg-card__title">Player lookup</div>
         <p class="text-secondary small mb-3">Players in this substation and their power allocations.</p>
@@ -265,6 +296,31 @@ class SubstationDetailViewModel extends AbstractViewModel {
     this.container.querySelector('[data-action="back"]')?.addEventListener("click", (e) => {
       e.preventDefault();
       this.router.goto("/energy/substations");
+    });
+
+    const capSchema = {
+      connectionCapacityMaximum: [required(), pattern(/^\d+$/, "Whole numbers only")],
+    };
+    this.container.querySelector('[data-action="save-connection-cap"]')?.addEventListener("click", (e) => {
+      e.preventDefault();
+      const form = /** @type {HTMLFormElement | null} */ (
+        this.container?.querySelector("#form-connection-cap")
+      );
+      if (!form) return;
+      const v = readFormValues(form);
+      const { valid, errors } = validateForm(capSchema, v);
+      if (!valid) return notify.formError("form-connection-cap", errors);
+      const creator = this.store.session?.data?.address ?? "";
+      if (!creator) {
+        notify.toast("Sign in required to update connection capacity", "danger");
+        return;
+      }
+      void this.substationManager.enqueueConnectionCapacityMaximum(
+        creator,
+        this.id,
+        v.connectionCapacityMaximum,
+      );
+      notify.toast("Connection capacity update enqueued", "info");
     });
 
     const createSchema = {
